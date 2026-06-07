@@ -32,34 +32,46 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Product unavailable' }, { status: 400 })
     }
 
-    // Create the order with IGN and Email
-    const order = await prisma.order.create({
-      data: {
-        userId: user.id,
-        ign: ign || null,
-        contactEmail: contactEmail || null,
-        total: product.price,
-        status: 'processing',
-        paymentStatus: 'pending',
-        paymentMethod: providerId
+    // Use transaction to ensure atomicity: order creation and stock decrement only happen together
+    const result = await prisma.$transaction(async (tx) => {
+      // Create the order with IGN and Email
+      const order = await tx.order.create({
+        data: {
+          userId: user.id,
+          ign: ign || null,
+          contactEmail: contactEmail || null,
+          total: product.price,
+          status: 'processing',
+          paymentStatus: 'pending',
+          paymentMethod: providerId
+        }
+      })
+
+      // Create order item
+      await tx.orderItem.create({
+        data: {
+          orderId: order.id,
+          productId: product.id,
+          quantity: 1,
+          price: product.price
+        }
+      })
+
+      // Decrement stock within transaction
+      const updatedProduct = await tx.product.update({
+        where: { id: product.id },
+        data: { stock: { decrement: 1 } }
+      })
+
+      // Verify stock was actually available (double-check for race conditions)
+      if (updatedProduct.stock < 0) {
+        throw new Error('Stock became negative - race condition detected')
       }
+
+      return order
     })
 
-    // Create order item
-    await prisma.orderItem.create({
-      data: {
-        orderId: order.id,
-        productId: product.id,
-        quantity: 1,
-        price: product.price
-      }
-    })
-
-    // Decrement stock
-    await prisma.product.update({
-      where: { id: product.id },
-      data: { stock: { decrement: 1 } }
-    })
+    const order = result
 
     // If manual payment method (not Coinbase), return order ID only
     if (providerId !== 'coinbase') {
