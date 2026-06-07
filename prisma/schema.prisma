@@ -1,0 +1,245 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  email         String    @unique
+  password      String
+  isVerified    Boolean   @default(false)
+  twoFactorSecret String?
+  role          String    @default("user")
+  banned        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  orders        Order[]
+  tickets       Ticket[]
+  reviews       Review[]
+  wishlist      WishlistItem[]
+  notifications Notification[]
+  disputes      Dispute[]
+  ticketReplies TicketReply[]
+  ticketAttachments TicketAttachment[]
+  twoFactorDevices TwoFactorDevice[]
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  price       Float
+  stock       Int
+  category    String
+  images      String[]  @default([])
+  isActive    Boolean   @default(true)
+  isLimited   Boolean   @default(false)
+  discount    Float?
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  reviews     Review[]
+  orderItems  OrderItem[]
+  wishlists   WishlistItem[]
+  bundleItems BundleItem[]
+}
+
+model Order {
+  id          String    @id @default(cuid())
+  userId      String
+  ign         String?
+  contactEmail String?
+  total       Float
+  status      String    @default("processing")
+  paymentStatus String  @default("pending")
+  paymentMethod String?
+  transactionId String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id])
+  items       OrderItem[]
+  disputes    Dispute[]
+  ticket      Ticket?   @relation("OrderTicket")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+  options   Json?
+
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Dispute {
+  id          String   @id @default(cuid())
+  orderId     String
+  userId      String
+  reason      String
+  status      String   @default("open")
+  resolution  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  order       Order    @relation(fields: [orderId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Ticket {
+  id          String    @id @default(cuid())
+  userId      String
+  orderId     String?   @unique
+  subject     String
+  message     String
+  status      String    @default("open")
+  priority    String    @default("medium")
+  assignedTo  String?
+  closedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id])
+  order       Order?    @relation("OrderTicket", fields: [orderId], references: [id])
+  replies     TicketReply[]
+  attachments TicketAttachment[]
+}
+
+model TicketReply {
+  id          String    @id @default(cuid())
+  ticketId    String
+  userId      String
+  message     String
+  createdAt   DateTime  @default(now())
+
+  ticket      Ticket    @relation(fields: [ticketId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model TicketAttachment {
+  id          String    @id @default(cuid())
+  ticketId    String
+  userId      String
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  createdAt   DateTime  @default(now())
+
+  ticket      Ticket    @relation(fields: [ticketId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  userId      String
+  productId   String
+  rating      Int
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id])
+}
+
+model WishlistItem {
+  id          String  @id @default(cuid())
+  userId      String
+  productId   String
+  createdAt   DateTime @default(now())
+
+  user        User    @relation(fields: [userId], references: [id])
+  product     Product @relation(fields: [productId], references: [id])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Bundle {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  discount    Float?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  items       BundleItem[]
+}
+
+model BundleItem {
+  id          String  @id @default(cuid())
+  bundleId    String
+  productId   String
+  quantity    Int     @default(1)
+
+  bundle      Bundle  @relation(fields: [bundleId], references: [id])
+  product     Product @relation(fields: [productId], references: [id])
+}
+
+model PaymentSetting {
+  id        String   @id @default(cuid())
+  method    String   @unique
+  enabled   Boolean  @default(false)
+  label     String
+  instructions String?
+  walletAddress String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SiteSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String?
+  type        String   @default("text")
+  label       String
+  category    String   @default("general")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Discount {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  discount    Float
+  expiresAt   DateTime?
+  usageLimit  Int?
+  usageCount  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model TwoFactorDevice {
+  id          String    @id @default(cuid())
+  userId      String
+  deviceName  String
+  ipAddress   String?
+  userAgent   String?
+  lastUsedAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id])
+}

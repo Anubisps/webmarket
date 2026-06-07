@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* -------- Light mode defaults -------- */
+:root {
+  --bg-primary: #f9fafb;
+  --bg-secondary: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-inverse: #ffffff;
+  --border-color: #e5e7eb;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --input-bg: #ffffff;
+  --input-text: #111827;
+}
+
+/* -------- Dark mode overrides -------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #0f111a;
+    --bg-secondary: #1a1d2e;
+    --text-primary: #f0f0f0;
+    --text-secondary: #b0b0b0;
+    --text-inverse: #111827;
+    --border-color: #374151;
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    --input-bg: #1a1d2e;
+    --input-text: #f0f0f0;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+  /* All text should be bright and bold for readability */
+  h1, h2, h3, h4, h5, h6, p, span, div, button, a, input, textarea, select, label {
+    color: var(--text-primary) !important;
+  }
+
+  /* Backgrounds */
+  .bg-white,
+  .bg-gray-50,
+  .bg-gray-100 {
+    background-color: var(--bg-secondary) !important;
+  }
+  .bg-gray-200,
+  .bg-gray-300,
+  .bg-gray-400,
+  .bg-gray-500 {
+    background-color: var(--border-color) !important;
+  }
+
+  /* Text colors – enforce bright text */
+  .text-gray-500,
+  .text-gray-600,
+  .text-gray-700,
+  .text-gray-800,
+  .text-gray-900 {
+    color: var(--text-secondary) !important;
+  }
+  .text-black {
+    color: var(--text-primary) !important;
+  }
+  .text-white {
+    color: #ffffff !important;
+  }
+
+  /* Borders */
+  .border,
+  .border-gray-100,
+  .border-gray-200,
+  .border-gray-300 {
+    border-color: var(--border-color) !important;
+  }
+
+  /* Shadows */
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl {
+    box-shadow: var(--card-shadow) !important;
+  }
+
+  /* Inputs, textareas, selects */
+  input,
+  textarea,
+  select {
+    background-color: var(--input-bg) !important;
+    color: var(--input-text) !important;
+    border-color: var(--border-color) !important;
+  }
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: 2px solid #8b5cf6;
+    outline-offset: 2px;
+  }
+
+  /* Override specific component backgrounds */
+  .bg-purple-50 {
+    background-color: rgba(139, 92, 246, 0.15) !important;
+  }
+  .bg-blue-50 {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+  }
+  .bg-green-50 {
+    background-color: rgba(34, 197, 94, 0.15) !important;
+  }
+  .bg-red-50 {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+  }
+  .bg-yellow-50 {
+    background-color: rgba(234, 179, 8, 0.15) !important;
+  }
+  .bg-indigo-50 {
+    background-color: rgba(99, 102, 241, 0.15) !important;
+  }
+  .bg-white\/10 {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+  }
+}
+
+/* -------- Animations -------- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* -------- Glass card -------- */
+.glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* -------- Scrollbar -------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
