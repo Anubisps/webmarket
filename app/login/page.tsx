@@ -59,32 +59,32 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12">
-      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg">
-        <h1 className="text-3xl font-bold text-center mb-6">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950 py-12 px-4">
+      <div className="max-w-md w-full bg-white dark:bg-gray-900 p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800">
+        <h1 className="text-3xl font-bold text-center mb-6 text-gray-900 dark:text-white">
           {show2FA ? 'Two-Factor Authentication' : 'Login'}
         </h1>
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {error && <p className="text-red-500 dark:text-red-400 text-center mb-4 font-medium">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           {!show2FA ? (
             <>
               <div>
-                <label className="block text-sm font-medium mb-1">Username or Email</label>
+                <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-200">Username or Email</label>
                 <input
                   type="text"
                   required
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   value={form.username}
                   onChange={e => setForm({ ...form, username: e.target.value })}
                   disabled={loading}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Password</label>
+                <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-200">Password</label>
                 <input
                   type="password"
                   required
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
                   disabled={loading}
@@ -93,16 +93,16 @@ export default function LoginPage() {
             </>
           ) : (
             <>
-              <p className="text-sm text-gray-600">
-                Enter the 6-digit code from your authenticator app for <strong>{rememberedEmail}</strong>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                Enter the 6-digit code from your authenticator app for <strong className="text-gray-900 dark:text-white">{rememberedEmail}</strong>
               </p>
               <div>
-                <label className="block text-sm font-medium mb-1">Authenticator Code</label>
+                <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-200">Authenticator Code</label>
                 <input
                   type="text"
                   placeholder="123456"
                   required
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   value={form.twoFactorToken}
                   onChange={e => setForm({ ...form, twoFactorToken: e.target.value })}
                   disabled={loading}
@@ -111,7 +111,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShow2FA(false)}
-                className="text-sm text-purple-600 hover:underline"
+                className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 underline"
               >
                 ← Back to login
               </button>
@@ -120,14 +120,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50"
+            className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-white py-2 rounded-lg transition disabled:opacity-50 font-medium"
           >
             {loading ? 'Processing...' : show2FA ? 'Verify 2FA' : 'Login'}
           </button>
         </form>
         {!show2FA && (
-          <p className="text-center mt-4">
-            Don't have an account? <Link href="/register" className="text-purple-600 hover:underline">Register</Link>
+          <p className="text-center mt-4 text-gray-700 dark:text-gray-300">
+            Don't have an account? <Link href="/register" className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">Register</Link>
           </p>
         )}
       </div>

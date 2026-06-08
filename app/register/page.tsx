@@ -40,44 +40,44 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12">
-      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg">
-        <h1 className="text-3xl font-bold text-center mb-6">Create Account</h1>
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950 py-12 px-4">
+      <div className="max-w-md w-full bg-white dark:bg-gray-900 p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800">
+        <h1 className="text-3xl font-bold text-center mb-6 text-gray-900 dark:text-white">Create Account</h1>
+        {error && <p className="text-red-500 dark:text-red-400 text-center mb-4 font-medium">{error}</p>}
         {success && (
-          <p className="text-green-500 text-center mb-4">
+          <p className="text-green-500 dark:text-green-400 text-center mb-4 font-medium">
             ✅ Account created! Redirecting to login...
           </p>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Username</label>
+            <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-200">Username</label>
             <input
               type="text"
               required
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               value={form.username}
               onChange={e => setForm({ ...form, username: e.target.value })}
               disabled={loading}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-200">Email</label>
             <input
               type="email"
               required
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               value={form.email}
               onChange={e => setForm({ ...form, email: e.target.value })}
               disabled={loading}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-200">Password</label>
             <input
               type="password"
               required
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })}
               disabled={loading}
@@ -86,7 +86,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-white py-2 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
           >
             {loading ? (
               <>
@@ -97,8 +97,8 @@ export default function RegisterPage() {
             )}
           </button>
         </form>
-        <p className="text-center mt-4">
-          Already have an account? <Link href="/login" className="text-purple-600 hover:underline">Login</Link>
+        <p className="text-center mt-4 text-gray-700 dark:text-gray-300">
+          Already have an account? <Link href="/login" className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">Login</Link>
         </p>
       </div>
     </div>
