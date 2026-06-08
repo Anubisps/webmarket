@@ -61,7 +61,10 @@ export function AdminSidebar({ basePath = '/accessadmin' }: AdminSidebarProps) {
       </nav>
       <div className="mt-auto pt-4 border-t border-gray-700">
         <button
-          onClick={() => signOut({ callbackUrl: '/' })}
+          onClick={async () => {
+            await signOut({ redirect: false })
+            window.location.assign('/')
+          }}
           className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-gray-800 transition w-full"
         >
           <LogOut className="w-5 h-5" />

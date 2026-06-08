@@ -1,8 +1,38 @@
 @import "tailwindcss";
 
+/* ===== THEME VARIABLES ===== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-secondary: #f1f5f9;
+  --surface-tertiary: #e2e8f0;
+  --surface-accent: #cbd5e1;
+  --border: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --ring: #8b5cf6;
+  --shadow-color: rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b0f1a;
+    --foreground: #e8ecf4;
+    --surface: #131828;
+    --surface-secondary: #1a2035;
+    --surface-tertiary: #232a3f;
+    --surface-accent: #2e364d;
+    --border: #2e364d;
+    --border-subtle: #1e2640;
+    --text-primary: #e8ecf4;
+    --text-secondary: #a8b3cf;
+    --text-muted: #7a84a0;
+    --ring: #a78bfa;
+    --shadow-color: rgba(0, 0, 0, 0.4);
+  }
 }
 
 @theme inline {
@@ -12,15 +42,181 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ===== BASE ===== */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: rgba(139, 92, 246, 0.25);
+  color: inherit;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* ===================================================================
+   DARK MODE — AUTOMATIC UTILITY REMAPS
+   Elements with explicit dark: classes are skipped (Tailwind handles them).
+   Everything else gets auto-adapted for dark browser mode.
+   =================================================================== */
+@media (prefers-color-scheme: dark) {
+
+  /* --- Surface backgrounds --- */
+  [class~="bg-white"]:not([class*="dark:bg"]):not([class*="text-purple"]):not([class*="text-indigo"]):not([class*="text-blue"]):not([class*="text-pink"]) {
+    background-color: var(--surface) !important;
+  }
+  [class~="bg-gray-50"]:not([class*="dark:bg"]) {
+    background-color: var(--surface-secondary) !important;
+  }
+  [class~="bg-gray-100"]:not([class*="dark:bg"]) {
+    background-color: var(--surface-tertiary) !important;
+  }
+  [class~="bg-gray-200"]:not([class*="dark:bg"]) {
+    background-color: var(--surface-accent) !important;
+  }
+  [class~="bg-gray-300"]:not([class*="dark:bg"]) {
+    background-color: var(--surface-accent) !important;
+  }
+
+  /* Hover state surfaces */
+  [class*="hover:bg-gray-50"]:not([class*="dark:hover"]):hover,
+  [class*="hover:bg-gray-100"]:not([class*="dark:hover"]):hover {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+  }
+  [class*="hover:bg-red-50"]:not([class*="dark:hover"]):hover {
+    background-color: rgba(239, 68, 68, 0.12) !important;
+  }
+
+  /* --- Text grays (lighten for dark surface readability) --- */
+  [class~="text-gray-900"]:not([class*="dark:text"]) {
+    color: var(--text-primary) !important;
+  }
+  [class~="text-gray-800"]:not([class*="dark:text"]) {
+    color: var(--text-primary) !important;
+  }
+  [class~="text-gray-700"]:not([class*="dark:text"]) {
+    color: var(--text-secondary) !important;
+  }
+  [class~="text-gray-600"]:not([class*="dark:text"]) {
+    color: var(--text-secondary) !important;
+  }
+  [class~="text-gray-500"]:not([class*="dark:text"]) {
+    color: var(--text-muted) !important;
+  }
+  [class~="text-black"]:not([class*="dark:text"]) {
+    color: var(--text-primary) !important;
+  }
+
+  /* Colored text on soft backgrounds — lighten for contrast */
+  [class~="text-purple-600"]:not([class*="dark:text"]) { color: #a78bfa !important; }
+  [class~="text-purple-700"]:not([class*="dark:text"]) { color: #c4b5fd !important; }
+  [class~="text-purple-800"]:not([class*="dark:text"]) { color: #c4b5fd !important; }
+  [class~="text-blue-700"]:not([class*="dark:text"])   { color: #93c5fd !important; }
+  [class~="text-green-700"]:not([class*="dark:text"])   { color: #86efac !important; }
+  [class~="text-red-700"]:not([class*="dark:text"])     { color: #fca5a5 !important; }
+  [class~="text-yellow-700"]:not([class*="dark:text"])  { color: #fde68a !important; }
+  [class~="text-orange-700"]:not([class*="dark:text"])  { color: #fdba74 !important; }
+  [class~="text-orange-600"]:not([class*="dark:text"])  { color: #fdba74 !important; }
+
+  /* --- Borders --- */
+  [class~="border-gray-100"]:not([class*="dark:border"]) { border-color: var(--border) !important; }
+  [class~="border-gray-200"]:not([class*="dark:border"]) { border-color: var(--border) !important; }
+  [class~="border-gray-300"]:not([class*="dark:border"]) { border-color: var(--border) !important; }
+
+  [class~="divide-gray-200"]:not([class*="dark:divide"]) > * + * {
+    border-color: var(--border) !important;
+  }
+
+  /* --- Inputs, textareas, selects --- */
+  input:not([type="checkbox"]):not([type="radio"]):not([class*="dark:bg"]),
+  textarea:not([class*="dark:bg"]),
+  select:not([class*="dark:bg"]) {
+    background-color: var(--surface-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-muted) !important;
+  }
+
+  /* --- Soft colored backgrounds --- */
+  [class~="bg-purple-50"]:not([class*="dark:bg"])  { background-color: rgba(139, 92, 246, 0.12) !important; }
+  [class~="bg-purple-100"]:not([class*="dark:bg"]) { background-color: rgba(139, 92, 246, 0.18) !important; }
+  [class~="bg-blue-50"]:not([class*="dark:bg"])    { background-color: rgba(59, 130, 246, 0.12) !important; }
+  [class~="bg-blue-100"]:not([class*="dark:bg"])    { background-color: rgba(59, 130, 246, 0.18) !important; }
+  [class~="bg-green-50"]:not([class*="dark:bg"])   { background-color: rgba(34, 197, 94, 0.12) !important; }
+  [class~="bg-green-100"]:not([class*="dark:bg"])  { background-color: rgba(34, 197, 94, 0.18) !important; }
+  [class~="bg-red-50"]:not([class*="dark:bg"])     { background-color: rgba(239, 68, 68, 0.12) !important; }
+  [class~="bg-red-100"]:not([class*="dark:bg"])    { background-color: rgba(239, 68, 68, 0.12) !important; }
+  [class~="bg-yellow-50"]:not([class*="dark:bg"])  { background-color: rgba(234, 179, 8, 0.12) !important; }
+  [class~="bg-yellow-100"]:not([class*="dark:bg"]) { background-color: rgba(234, 179, 8, 0.12) !important; }
+  [class~="bg-indigo-50"]:not([class*="dark:bg"])  { background-color: rgba(99, 102, 241, 0.12) !important; }
+  [class~="bg-orange-100"]:not([class*="dark:bg"]) { background-color: rgba(249, 115, 22, 0.16) !important; }
+  [class~="bg-pink-50"]:not([class*="dark:bg"])    { background-color: rgba(236, 72, 153, 0.12) !important; }
+
+  /* --- Glass card --- */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  }
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ===== GLASS CARD ===== */
+.glass-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-accent);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }

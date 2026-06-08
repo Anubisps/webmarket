@@ -41,10 +41,10 @@ export function UserAvatar() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50 animate-fade-in">
-          <div className="p-4 border-b border-gray-100">
-            <p className="font-medium">{username}</p>
-            <p className="text-sm text-gray-500">{email}</p>
+        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[var(--surface)] rounded-xl shadow-lg dark:shadow-black/30 border border-gray-100 dark:border-[var(--border)] overflow-hidden z-50 animate-fade-in">
+          <div className="p-4 border-b border-gray-100 dark:border-[var(--border)]">
+            <p className="font-medium text-gray-900 dark:text-[var(--text-primary)]">{username}</p>
+            <p className="text-sm text-gray-500 dark:text-[var(--text-muted)]">{email}</p>
           </div>
           <div className="py-1">
             <button
@@ -52,33 +52,37 @@ export function UserAvatar() {
                 setIsOpen(false)
                 router.push('/dashboard/profile')
               }}
-              className="flex items-center gap-3 w-full px-4 py-2 hover:bg-gray-50 transition"
+              className="flex items-center gap-3 w-full px-4 py-2 hover:bg-gray-50 dark:hover:bg-white/5 transition text-gray-700 dark:text-[var(--text-secondary)]"
             >
-              <User className="w-4 h-4 text-gray-500" /> Profile
+              <User className="w-4 h-4 text-gray-500 dark:text-[var(--text-muted)]" /> Profile
             </button>
             <button
               onClick={() => {
                 setIsOpen(false)
                 router.push('/dashboard/security')
               }}
-              className="flex items-center gap-3 w-full px-4 py-2 hover:bg-gray-50 transition"
+              className="flex items-center gap-3 w-full px-4 py-2 hover:bg-gray-50 dark:hover:bg-white/5 transition text-gray-700 dark:text-[var(--text-secondary)]"
             >
-              <Shield className="w-4 h-4 text-gray-500" /> Security (2FA)
+              <Shield className="w-4 h-4 text-gray-500 dark:text-[var(--text-muted)]" /> Security (2FA)
             </button>
             <button
               onClick={() => {
                 setIsOpen(false)
                 router.push('/dashboard/settings')
               }}
-              className="flex items-center gap-3 w-full px-4 py-2 hover:bg-gray-50 transition"
+              className="flex items-center gap-3 w-full px-4 py-2 hover:bg-gray-50 dark:hover:bg-white/5 transition text-gray-700 dark:text-[var(--text-secondary)]"
             >
-              <Settings className="w-4 h-4 text-gray-500" /> Settings
+              <Settings className="w-4 h-4 text-gray-500 dark:text-[var(--text-muted)]" /> Settings
             </button>
           </div>
-          <div className="border-t border-gray-100 py-1">
+          <div className="border-t border-gray-100 dark:border-[var(--border)] py-1">
             <button
-              onClick={() => signOut({ callbackUrl: '/' })}
-              className="flex items-center gap-3 w-full px-4 py-2 hover:bg-gray-50 transition text-red-600"
+              onClick={async () => {
+                setIsOpen(false)
+                await signOut({ redirect: false })
+                window.location.assign('/')
+              }}
+              className="flex items-center gap-3 w-full px-4 py-2 hover:bg-red-50 dark:hover:bg-red-500/10 transition text-red-600 dark:text-red-400"
             >
               <LogOut className="w-4 h-4" /> Logout
             </button>
