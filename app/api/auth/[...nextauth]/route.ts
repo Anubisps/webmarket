@@ -72,6 +72,10 @@ const handler = NextAuth({
         session.user.id = token.id
       }
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      // Redirect to base URL after sign out
+      return process.env.NEXTAUTH_URL || 'http://88.214.26.201:3000'
     }
   },
   pages: {

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { ArrowLeft, CheckCircle, Clock, XCircle, AlertCircle, Box, User, Mail, CreditCard, Package, Sparkles } from 'lucide-react'
 
 export default function ManageOrderPage() {
   const router = useRouter()
@@ -11,13 +12,13 @@ export default function ManageOrderPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [order, setOrder] = useState<any>(null)
+  const [staffList, setStaffList] = useState<any[]>([])
+  const [assigning, setAssigning] = useState(false)
 
   useEffect(() => {
     fetch(`/api/admin/orders/${id}`)
       .then(res => {
-        if (!res.ok) {
-          throw new Error('Order not found')
-        }
+        if (!res.ok) throw new Error('Order not found')
         return res.json()
       })
       .then(data => {
@@ -25,9 +26,14 @@ export default function ManageOrderPage() {
         setLoading(false)
       })
       .catch(err => {
-        setError('Order not found – it may have been deleted.')
+        setError('Order not found')
         setLoading(false)
       })
+
+    fetch('/api/admin/users/staff')
+      .then(res => res.json())
+      .then(data => setStaffList(data))
+      .catch(err => console.error('Failed to load staff:', err))
   }, [id])
 
   const updateStatus = async (status: string) => {
@@ -80,94 +86,173 @@ export default function ManageOrderPage() {
     }
   }
 
-  if (loading) {
-    return <div className="p-8 text-center text-gray-500">Loading order...</div>
+  const assignTicket = async (staffId: string) => {
+    setAssigning(true)
+    setError('')
+    setSuccess('')
+    try {
+      const res = await fetch(`/api/admin/tickets/${id}/assign`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedTo: staffId || null })
+      })
+      if (res.ok) {
+        setSuccess('Ticket assigned successfully')
+        const updated = await res.json()
+        setOrder(updated)
+      } else {
+        const data = await res.json()
+        setError(data.error || 'Failed to assign ticket')
+      }
+    } catch (err) {
+      setError('Network error – please try again')
+    } finally {
+      setAssigning(false)
+    }
   }
 
-  if (error) {
-    return (
-      <div className="p-8 text-center">
-        <p className="text-red-500 mb-4">{error}</p>
-        <Link href="/accessadmin/orders" className="text-purple-600 hover:underline">
-          ← Back to Orders
-        </Link>
-      </div>
-    )
+  if (loading) return <div className="p-8 text-center text-gray-400">Loading order...</div>
+  if (error) return (
+    <div className="p-8 text-center">
+      <p className="text-red-400 mb-4">{error}</p>
+      <Link href="/accessadmin/orders" className="text-purple-400 hover:underline">← Back to Orders</Link>
+    </div>
+  )
+
+  const statusConfig = {
+    processing: { icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/10', label: 'Processing' },
+    completed: { icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Completed' },
+    cancelled: { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Cancelled' },
+    disputed: { icon: AlertCircle, color: 'text-orange-400', bg: 'bg-orange-500/10', label: 'Disputed' },
   }
 
-  if (!order) {
-    return (
-      <div className="p-8 text-center">
-        <p className="text-gray-500 mb-4">Order not found.</p>
-        <Link href="/accessadmin/orders" className="text-purple-600 hover:underline">
-          ← Back to Orders
-        </Link>
-      </div>
-    )
+  const paymentStatusConfig = {
+    pending: { icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/10', label: 'Pending Payment' },
+    paid: { icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Paid' },
+    failed: { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Failed' },
+    refunded: { icon: AlertCircle, color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Refunded' },
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Manage Order #{order.id.slice(0,8)}</h1>
-        <Link href="/accessadmin/orders" className="text-purple-600 hover:underline">← Back to Orders</Link>
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      
+      {/* ===== HEADER ===== */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+        <div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-4">
+            <Box className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs font-medium text-gray-300">Order</span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-extrabold">
+            Manage Order #{order.id.slice(0,8)}
+          </h1>
+          <p className="text-gray-400 text-lg">Update order status and details.</p>
+        </div>
+        <Link
+          href="/accessadmin/orders"
+          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all mt-4 md:mt-0"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Orders
+        </Link>
       </div>
 
-      {success && <p className="text-green-500 mb-4">{success}</p>}
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+      {/* ===== ALERTS ===== */}
+      {success && <p className="text-emerald-400 mb-4">{success}</p>}
+      {error && <p className="text-red-400 mb-4">{error}</p>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <h2 className="text-xl font-bold mb-4">Order Information</h2>
-          <div className="space-y-2">
-            <p><strong>Customer:</strong> {order.user?.username} ({order.user?.email})</p>
-            <p><strong>Total:</strong> ${order.total.toFixed(2)}</p>
-            <p><strong>Created:</strong> {new Date(order.createdAt).toLocaleString()}</p>
-            <p><strong>Items:</strong> {order.items?.length || 0}</p>
+      {/* ===== MAIN CONTENT ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Left column - Order Details */}
+        <div className="md:col-span-2 space-y-6">
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Box className="w-5 h-5 text-emerald-400" />
+              Order Information
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-black/30 rounded-xl p-4 border border-white/5">
+                <p className="text-sm text-gray-400 flex items-center gap-2">
+                  <User className="w-4 h-4" /> Customer
+                </p>
+                <p className="font-medium">{order.user?.username}</p>
+                <p className="text-xs text-gray-400">{order.user?.email}</p>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4 border border-white/5">
+                <p className="text-sm text-gray-400">Total Amount</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+                  {order.total.toFixed(2)} USDC
+                </p>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4 border border-white/5">
+                <p className="text-sm text-gray-400 flex items-center gap-2">
+                  <Clock className="w-4 h-4" /> Created
+                </p>
+                <p className="text-sm">{new Date(order.createdAt).toLocaleString()}</p>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4 border border-white/5">
+                <p className="text-sm text-gray-400">Items</p>
+                <p className="text-sm">{order.items?.length || 0} item(s)</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Package className="w-5 h-5 text-emerald-400" />
+              Items
+            </h2>
+            <div className="space-y-2">
+              {order.items?.map((item: any) => (
+                <div key={item.id} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
+                  <span className="font-medium">{item.product?.name}</span>
+                  <span className="text-sm text-gray-400">{item.price.toFixed(2)} USDC × {item.quantity}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <h2 className="text-xl font-bold mb-4">Update Status</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Order Status</label>
-              <div className="flex gap-2 flex-wrap">
-                {['processing', 'completed', 'cancelled', 'disputed'].map(status => (
-                  <button
-                    key={status}
-                    onClick={() => updateStatus(status)}
-                    disabled={loading || order.status === status}
-                    className={`px-3 py-1 rounded text-sm ${
-                      order.status === status
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-200 hover:bg-gray-300'
-                    }`}
-                  >
-                    {status}
-                  </button>
-                ))}
-              </div>
+        {/* Right column - Controls */}
+        <div className="space-y-6">
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6">
+            <h3 className="font-bold mb-3 text-gray-200">Status</h3>
+            <div className="flex flex-col gap-2">
+              {['processing', 'completed', 'cancelled', 'disputed'].map(status => (
+                <button
+                  key={status}
+                  onClick={() => updateStatus(status)}
+                  disabled={loading || order.status === status}
+                  className={`px-3 py-2 rounded-xl text-sm transition-all ${
+                    order.status === status
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                      : 'bg-white/5 hover:bg-white/10 text-gray-400'
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Payment Status</label>
-              <div className="flex gap-2 flex-wrap">
-                {['pending', 'paid', 'failed'].map(status => (
-                  <button
-                    key={status}
-                    onClick={() => updatePaymentStatus(status)}
-                    disabled={loading || order.paymentStatus === status}
-                    className={`px-3 py-1 rounded text-sm ${
-                      order.paymentStatus === status
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-200 hover:bg-gray-300'
-                    }`}
-                  >
-                    {status}
-                  </button>
-                ))}
-              </div>
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6">
+            <h3 className="font-bold mb-3 text-gray-200">Payment Status</h3>
+            <div className="flex flex-col gap-2">
+              {['pending', 'paid', 'failed'].map(status => (
+                <button
+                  key={status}
+                  onClick={() => updatePaymentStatus(status)}
+                  disabled={loading || order.paymentStatus === status}
+                  className={`px-3 py-2 rounded-xl text-sm transition-all ${
+                    order.paymentStatus === status
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white'
+                      : 'bg-white/5 hover:bg-white/10 text-gray-400'
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
             </div>
           </div>
         </div>

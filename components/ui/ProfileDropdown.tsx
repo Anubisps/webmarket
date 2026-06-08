@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { User, Shield, LogOut, LayoutDashboard } from 'lucide-react'
 
@@ -28,12 +28,11 @@ export function ProfileDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-full bg-white text-indigo-900 px-3 py-2 hover:scale-105 transition shadow-md"
+        className="flex items-center gap-2 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-1 hover:scale-105 transition shadow-md"
       >
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+        <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-sm">
           {username.charAt(0).toUpperCase()}
         </div>
-        <span className="hidden sm:inline font-medium text-gray-900 dark:text-white">{username}</span>
       </button>
 
       {open && (
@@ -62,9 +61,9 @@ export function ProfileDropdown() {
           </div>
           <div className="border-t border-gray-200 dark:border-gray-700 p-2">
             <button
-              onClick={async () => {
+              onClick={() => {
                 setOpen(false)
-                await signOut({ callbackUrl: '/' })
+                window.location.href = '/api/auth/signout?callbackUrl=http://88.214.26.201:3000'
               }}
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition w-full text-left text-red-600 dark:text-red-400 font-medium"
             >

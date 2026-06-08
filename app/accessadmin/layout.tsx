@@ -20,10 +20,17 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <AdminSidebar />
-      <div className="flex-1 ml-64 p-8">
-        {children}
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      <div className="flex">
+        {/* Sidebar - fixed */}
+        <AdminSidebar />
+        
+        {/* Main content - scrollable */}
+        <div className="flex-1 ml-64 min-h-screen p-8">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </div>
       </div>
     </div>
   )

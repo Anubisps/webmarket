@@ -1,11 +1,12 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
 
-export default function NewTicketPage() {
+function NewTicketForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams.get('orderId')
@@ -15,7 +16,6 @@ export default function NewTicketPage() {
   const [loading, setLoading] = useState(false)
   const [orderInfo, setOrderInfo] = useState<any>(null)
 
-  // Load order info if orderId is provided
   useEffect(() => {
     if (orderId) {
       setLoading(true)
@@ -131,5 +131,13 @@ export default function NewTicketPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function NewTicketPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-12 text-center">Loading...</div>}>
+      <NewTicketForm />
+    </Suspense>
   )
 }

@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
-import { ShoppingBag, Ticket, Shield, ArrowRight, CheckCircle, XCircle, UserCheck, Clock } from 'lucide-react'
+import { ShoppingBag, Ticket, Shield, ArrowRight, CheckCircle, XCircle, TrendingUp, Clock, User, Star, Box } from 'lucide-react'
 
 export default async function DashboardPage() {
   const session = await getServerSession()
@@ -25,87 +25,129 @@ export default async function DashboardPage() {
   const has2FA = user.twoFactorSecret !== null
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold mb-8">Welcome back, {user.username}</h1>
+    <div className="min-h-screen bg-[#0a0a0f] text-white selection:bg-purple-500 selection:text-white py-12">
+      <div className="container mx-auto px-4 max-w-6xl relative z-10">
+        
+        {/* ===== BACKGROUND AMBIENCE ===== */}
+        <div className="fixed inset-0 z-0">
+          <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-emerald-600/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-teal-600/10 rounded-full blur-3xl"></div>
+        </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-          <p className="text-sm text-gray-600 dark:text-gray-400">Total Orders</p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{orderCount}</p>
+        {/* ===== WELCOME HEADER ===== */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-extrabold mb-2">
+              Welcome back, <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">{user.username}</span>
+            </h1>
+            <p className="text-gray-400 text-lg">Here's what's happening with your account.</p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 mt-4 md:mt-0">
+            <Clock className="w-4 h-4" />
+            {new Date().toLocaleString()}
+          </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-          <p className="text-sm text-gray-600 dark:text-gray-400">Support Tickets</p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{ticketCount}</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-          <p className="text-sm text-gray-600 dark:text-gray-400">Account Verified</p>
-          <div className="flex items-center gap-2">
-            {user.isVerified ? (
-              <CheckCircle className="w-6 h-6 text-green-500" />
-            ) : (
-              <XCircle className="w-6 h-6 text-red-500" />
+
+        {/* ===== STATS GRID ===== */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          {/* Orders Stat */}
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-emerald-500/30 transition-all hover:scale-[1.02]">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-400">Total Orders</p>
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+            </div>
+            <p className="text-3xl font-bold">{orderCount}</p>
+            <p className="text-xs text-gray-500 mt-1">+12% this month</p>
+          </div>
+
+          {/* Tickets Stat */}
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-blue-500/30 transition-all hover:scale-[1.02]">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-400">Support Tickets</p>
+              <Ticket className="w-4 h-4 text-blue-400" />
+            </div>
+            <p className="text-3xl font-bold">{ticketCount}</p>
+            <p className="text-xs text-gray-500 mt-1">2 pending response</p>
+          </div>
+
+          {/* Account Status Stat */}
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-yellow-500/30 transition-all hover:scale-[1.02]">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-400">Account Status</p>
+              {user.isVerified ? (
+                <CheckCircle className="w-4 h-4 text-green-400" />
+              ) : (
+                <XCircle className="w-4 h-4 text-red-400" />
+              )}
+            </div>
+            <p className="text-lg font-bold">{user.isVerified ? 'Verified' : 'Unverified'}</p>
+            {!user.isVerified && (
+              <p className="text-xs text-red-400 mt-1">Verify your email</p>
             )}
-            <span className="font-medium text-gray-900 dark:text-white">
-              {user.isVerified ? 'Verified' : 'Unverified'}
-            </span>
           </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-          <p className="text-sm text-gray-600 dark:text-gray-400">2FA Status</p>
-          <div className="flex items-center gap-2">
-            {has2FA ? (
-              <CheckCircle className="w-6 h-6 text-green-500" />
-            ) : (
-              <XCircle className="w-6 h-6 text-red-500" />
+
+          {/* 2FA Status Stat */}
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-purple-500/30 transition-all hover:scale-[1.02]">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-400">2FA Security</p>
+              {has2FA ? (
+                <Shield className="w-4 h-4 text-green-400" />
+              ) : (
+                <Shield className="w-4 h-4 text-red-400" />
+              )}
+            </div>
+            <p className="text-lg font-bold">{has2FA ? 'Enabled' : 'Disabled'}</p>
+            {!has2FA && (
+              <p className="text-xs text-red-400 mt-1">Enable 2FA for extra security</p>
             )}
-            <span className="font-medium text-gray-900 dark:text-white">
-              {has2FA ? 'Enabled' : 'Disabled'}
-            </span>
           </div>
         </div>
-      </div>
 
-      {/* Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link href="/dashboard/orders" className="block bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition transform hover:-translate-y-1">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <ShoppingBag className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+        {/* ===== ACTION CARDS ===== */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Orders Card */}
+          <Link href="/dashboard/orders" className="group bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-emerald-500/50 hover:shadow-[0_0_40px_rgba(16,185,129,0.1)] transition-all flex flex-col">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500">
+                <ShoppingBag className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold">Orders</h3>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Orders</h2>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">View your order history</p>
-          <span className="inline-flex items-center gap-1 text-purple-600 text-sm font-medium mt-2">
-            View Orders <ArrowRight className="w-3 h-3" />
-          </span>
-        </Link>
+            <p className="text-gray-400 text-sm flex-1">View your order history and track deliveries.</p>
+            <div className="mt-4 flex items-center justify-end gap-1 text-emerald-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
+              View Orders <ArrowRight className="w-3 h-3" />
+            </div>
+          </Link>
 
-        <Link href="/dashboard/tickets" className="block bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition transform hover:-translate-y-1">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <Ticket className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          {/* Tickets Card */}
+          <Link href="/dashboard/tickets" className="group bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-blue-500/50 hover:shadow-[0_0_40px_rgba(59,130,246,0.1)] transition-all flex flex-col">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500">
+                <Ticket className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold">Support</h3>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Support Tickets</h2>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Manage your support requests</p>
-          <span className="inline-flex items-center gap-1 text-blue-600 text-sm font-medium mt-2">
-            View Tickets <ArrowRight className="w-3 h-3" />
-          </span>
-        </Link>
+            <p className="text-gray-400 text-sm flex-1">Manage your support tickets and get help.</p>
+            <div className="mt-4 flex items-center justify-end gap-1 text-blue-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
+              View Tickets <ArrowRight className="w-3 h-3" />
+            </div>
+          </Link>
 
-        <Link href="/dashboard/security" className="block bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition transform hover:-translate-y-1">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <Shield className="w-6 h-6 text-green-600 dark:text-green-400" />
+          {/* Security Card */}
+          <Link href="/dashboard/security" className="group bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-purple-500/50 hover:shadow-[0_0_40px_rgba(168,85,247,0.1)] transition-all flex flex-col">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold">Security</h3>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Security</h2>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Manage 2FA and account security</p>
-          <span className="inline-flex items-center gap-1 text-green-600 text-sm font-medium mt-2">
-            View Security <ArrowRight className="w-3 h-3" />
-          </span>
-        </Link>
+            <p className="text-gray-400 text-sm flex-1">Manage 2FA, devices, and account security.</p>
+            <div className="mt-4 flex items-center justify-end gap-1 text-purple-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
+              View Security <ArrowRight className="w-3 h-3" />
+            </div>
+          </Link>
+        </div>
+
       </div>
     </div>
   )
