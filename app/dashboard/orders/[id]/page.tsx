@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle, Clock, XCircle, AlertCircle, MessageCircle, Calendar, User, Mail, CreditCard, Package, Shield, Box, ArrowRight } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, XCircle, AlertCircle, MessageCircle, Calendar, User, Mail, CreditCard, Package, Shield, Box, ArrowRight, Star, Download } from 'lucide-react'
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -55,30 +55,37 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const PaymentIcon = paymentStatusConfig[order.paymentStatus as keyof typeof paymentStatusConfig]?.icon || Clock
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white selection:bg-purple-500 selection:text-white py-12">
+    <div className="min-h-screen bg-[#0a0a0f] text-white py-12">
       <div className="container mx-auto px-4 max-w-4xl relative z-10">
-        
-        {/* ===== BACKGROUND AMBIENCE ===== */}
         <div className="fixed inset-0 z-0">
-          <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-emerald-600/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-teal-600/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-purple-600/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-pink-600/10 rounded-full blur-3xl"></div>
         </div>
 
-        {/* ===== BACK BUTTON ===== */}
         <Link href="/dashboard/orders" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors group">
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           <span>Back to Orders</span>
         </Link>
 
-        {/* ===== MAIN ORDER CARD ===== */}
         <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.4)]">
-          
-          {/* Header Banner */}
-          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-8">
+          {/* ✅ BANNER IMAGE – Displayed at the top of the order card */}
+          {order.bannerImage && (
+            <div className="relative w-full h-48 overflow-hidden">
+              <img src={order.bannerImage} alt="Order Banner" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <div className="flex items-center gap-2 text-yellow-400">
+                  <Star className="w-12 h-12 fill-current" />
+                  <span className="text-4xl font-bold">4.9</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div>
                 <h1 className="text-3xl md:text-4xl font-extrabold">Order #{order.id.slice(0,8)}</h1>
-                <p className="text-sm text-emerald-100 mt-1 flex items-center gap-1">
+                <p className="text-sm text-purple-100 mt-1 flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
                   {new Date(order.createdAt).toLocaleString()}
                 </p>
@@ -96,10 +103,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             </div>
           </div>
 
-          {/* Content */}
-          <div className="p-8 space-y-8">
-            
-            {/* Order Details Grid */}
+          <div className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-black/30 rounded-xl p-4 border border-white/5">
                 <p className="text-sm text-gray-400 flex items-center gap-2">
@@ -121,36 +125,49 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </div>
               <div className="bg-black/30 rounded-xl p-4 border border-white/5">
                 <p className="text-sm text-gray-400">Total Amount</p>
-                <p className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+                <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   {order.total.toFixed(2)} USDC
                 </p>
+                {order.discountAmount && (
+                  <p className="text-sm text-green-400 mt-1">
+                    Discount applied: -{order.discountAmount} USDC
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Items Section */}
+            {order.staffNote && (
+              <div className="bg-blue-500/10 rounded-xl p-4 border border-blue-500/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <MessageCircle className="w-4 h-4 text-blue-400" />
+                  <h3 className="text-sm font-medium text-blue-400">Staff Note</h3>
+                </div>
+                <p className="text-gray-300 text-sm">{order.staffNote}</p>
+              </div>
+            )}
+
             <div>
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Package className="w-5 h-5 text-emerald-400" />
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Package className="w-5 h-5 text-purple-400" />
                 Items
               </h2>
-              <div className="bg-black/30 rounded-xl p-4 border border-white/5 space-y-3">
+              <div className="bg-black/30 rounded-xl p-4 border border-white/5 space-y-2">
                 {order.items.map((item, index) => (
                   <div key={item.id} className={`flex justify-between items-center py-2 ${index !== order.items.length - 1 ? 'border-b border-white/5' : ''}`}>
                     <span className="font-medium">{item.product.name}</span>
                     <span className="text-sm text-gray-400">{item.price.toFixed(2)} USDC × {item.quantity}</span>
                   </div>
                 ))}
-                <div className="pt-3 border-t border-white/5 flex justify-between items-center">
-                  <span className="font-bold">Total</span>
-                  <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-                    {order.total.toFixed(2)} USDC
-                  </span>
-                </div>
+                {order.discountAmount && (
+                  <div className="flex justify-between items-center py-2 border-t border-white/5">
+                    <span className="text-green-400">Referral Discount</span>
+                    <span className="text-green-400">-{order.discountAmount} USDC</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Actions Section */}
-            <div className="pt-6 border-t border-white/5 flex flex-wrap gap-4">
+            <div className="pt-4 border-t border-white/5 flex flex-wrap gap-4">
               {!hasTicket ? (
                 <Link
                   href={`/dashboard/tickets/new?orderId=${order.id}`}
@@ -166,6 +183,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   </Link>
                 </div>
               )}
+              <Link
+                href={`/api/invoices/${order.id}`}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition"
+              >
+                <Download className="w-4 h-4" /> Download Invoice
+              </Link>
             </div>
           </div>
         </div>

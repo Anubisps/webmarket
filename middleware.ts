@@ -1,71 +1,45 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// In-memory cache for maintenance mode setting
-let maintenanceCache: { value: boolean; expiry: number } | null = null
-const CACHE_TTL = 30 * 1000 // 30 seconds
-
-function getMaintenanceFromCache(): boolean | null {
-  if (!maintenanceCache || Date.now() > maintenanceCache.expiry) {
-    return null
-  }
-  return maintenanceCache.value
+function generateCSRFToken(): string {
+  const array = new Uint8Array(32)
+  crypto.getRandomValues(array)
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
-function setMaintenanceCache(value: boolean): void {
-  maintenanceCache = {
-    value,
-    expiry: Date.now() + CACHE_TTL
-  }
-}
+export function middleware(request: NextRequest) {
+  // Check if CSRF token cookie exists
+  let csrfToken = request.cookies.get('csrf_token')?.value
+  
+  const response = NextResponse.next()
 
-export async function middleware(request: NextRequest) {
-  // Skip API routes and static assets
-  if (request.nextUrl.pathname.startsWith('/api') || 
-      request.nextUrl.pathname.startsWith('/_next') ||
-      request.nextUrl.pathname.startsWith('/uploads')) {
-    return NextResponse.next()
-  }
-
-  // Check cache first
-  let maintenanceMode = getMaintenanceFromCache()
-
-  // If cache miss, fetch (with timeout to prevent blocking)
-  if (maintenanceMode === null) {
-    try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 2000) // 2 second timeout
-      
-      const res = await fetch(`${request.nextUrl.origin}/api/settings`, {
-        signal: controller.signal
-      })
-      clearTimeout(timeoutId)
-      
-      if (res.ok) {
-        const settings = await res.json()
-        maintenanceMode = settings.maintenance_mode === true
-        setMaintenanceCache(maintenanceMode)
-      } else {
-        maintenanceMode = false
-      }
-    } catch (error) {
-      // On timeout or error, assume not in maintenance mode
-      maintenanceMode = false
-    }
+  // If token doesn't exist, generate and set it
+  if (!csrfToken) {
+    csrfToken = generateCSRFToken()
+    response.cookies.set('csrf_token', csrfToken, {
+      httpOnly: false, // ✅ Allow client-side JavaScript to read it
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24, // 1 day
+      path: '/'
+    })
   }
 
-  if (maintenanceMode) {
-    // Allow access to /maintenance page
-    if (request.nextUrl.pathname === '/maintenance') {
-      return NextResponse.next()
-    }
-    // Redirect to maintenance page
-    return NextResponse.redirect(new URL('/maintenance', request.url))
-  }
+  // ✅ Also set it as a header for server-side verification
+  response.headers.set('x-csrf-token', csrfToken)
 
-  return NextResponse.next()
+  return response
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - api/csrf (CSRF endpoint)
+     */
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
 }

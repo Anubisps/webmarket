@@ -1,9 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { Header } from '@/components/layout/Header'
-import { Footer } from '@/components/layout/Footer'
 import { Providers } from './providers'
 import { SettingsProvider } from '@/context/SettingsContext'
+import { ClientLayout } from './client-layout'
 
 export const metadata: Metadata = {
   title: 'WindVault Market',
@@ -20,9 +19,7 @@ export default function RootLayout({
       <body>
         <Providers>
           <SettingsProvider>
-            <Header />
-            {children}
-            <Footer />
+            <ClientLayout>{children}</ClientLayout>
           </SettingsProvider>
         </Providers>
       </body>

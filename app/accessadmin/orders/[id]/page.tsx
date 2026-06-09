@@ -2,7 +2,16 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle, Clock, XCircle, AlertCircle, Box, User, Mail, CreditCard, Package, Sparkles } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, XCircle, AlertCircle, Box, User, Mail, CreditCard, Package, Sparkles, Edit, Save, Trash2, Plus, MessageCircle } from 'lucide-react'
+import toast from 'react-hot-toast'
+
+interface OrderItem {
+  id: string
+  productId: string
+  productName: string
+  price: number
+  quantity: number
+}
 
 export default function ManageOrderPage() {
   const router = useRouter()
@@ -13,7 +22,11 @@ export default function ManageOrderPage() {
   const [success, setSuccess] = useState('')
   const [order, setOrder] = useState<any>(null)
   const [staffList, setStaffList] = useState<any[]>([])
-  const [assigning, setAssigning] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [staffNote, setStaffNote] = useState('')
+  const [discountAmount, setDiscountAmount] = useState('')
+  const [items, setItems] = useState<OrderItem[]>([])
+  const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
     fetch(`/api/admin/orders/${id}`)
@@ -23,6 +36,15 @@ export default function ManageOrderPage() {
       })
       .then(data => {
         setOrder(data)
+        setStaffNote(data.staffNote || '')
+        setDiscountAmount(data.discountAmount?.toString() || '')
+        setItems(data.items.map((item: any) => ({
+          id: item.id,
+          productId: item.productId,
+          productName: item.product.name,
+          price: item.price,
+          quantity: item.quantity
+        })))
         setLoading(false)
       })
       .catch(err => {
@@ -86,29 +108,57 @@ export default function ManageOrderPage() {
     }
   }
 
-  const assignTicket = async (staffId: string) => {
-    setAssigning(true)
+  const saveOrderDetails = async () => {
+    setUpdating(true)
     setError('')
     setSuccess('')
     try {
-      const res = await fetch(`/api/admin/tickets/${id}/assign`, {
+      const res = await fetch(`/api/admin/orders/${id}/details`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignedTo: staffId || null })
+        body: JSON.stringify({
+          staffNote: staffNote.trim(),
+          discountAmount: parseFloat(discountAmount) || 0,
+          items: items.map(item => ({
+            id: item.id,
+            productName: item.productName,
+            price: item.price,
+            quantity: item.quantity
+          }))
+        })
       })
       if (res.ok) {
-        setSuccess('Ticket assigned successfully')
+        setSuccess('Order details updated successfully')
         const updated = await res.json()
         setOrder(updated)
+        setEditing(false)
       } else {
         const data = await res.json()
-        setError(data.error || 'Failed to assign ticket')
+        setError(data.error || 'Failed to update order')
       }
     } catch (err) {
       setError('Network error – please try again')
     } finally {
-      setAssigning(false)
+      setUpdating(false)
     }
+  }
+
+  const updateItem = (index: number, field: string, value: any) => {
+    const newItems = [...items]
+    newItems[index] = { ...newItems[index], [field]: value }
+    setItems(newItems)
+  }
+
+  const addItem = () => {
+    setItems([...items, { id: 'new_' + Date.now(), productId: '', productName: '', price: 0, quantity: 1 }])
+  }
+
+  const removeItem = (index: number) => {
+    if (items.length <= 1) {
+      toast.error('Order must have at least one item')
+      return
+    }
+    setItems(items.filter((_, i) => i !== index))
   }
 
   if (loading) return <div className="p-8 text-center text-gray-400">Loading order...</div>
@@ -133,10 +183,11 @@ export default function ManageOrderPage() {
     refunded: { icon: AlertCircle, color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Refunded' },
   }
 
+  const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const finalTotal = total - (parseFloat(discountAmount) || 0)
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
-      
-      {/* ===== HEADER ===== */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
         <div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-4">
@@ -146,7 +197,7 @@ export default function ManageOrderPage() {
           <h1 className="text-3xl md:text-4xl font-extrabold">
             Manage Order #{order.id.slice(0,8)}
           </h1>
-          <p className="text-gray-400 text-lg">Update order status and details.</p>
+          <p className="text-gray-400 text-lg">Update order status, details, and items.</p>
         </div>
         <Link
           href="/accessadmin/orders"
@@ -157,14 +208,10 @@ export default function ManageOrderPage() {
         </Link>
       </div>
 
-      {/* ===== ALERTS ===== */}
       {success && <p className="text-emerald-400 mb-4">{success}</p>}
       {error && <p className="text-red-400 mb-4">{error}</p>}
 
-      {/* ===== MAIN CONTENT ===== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Left column - Order Details */}
         <div className="md:col-span-2 space-y-6">
           <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -182,8 +229,11 @@ export default function ManageOrderPage() {
               <div className="bg-black/30 rounded-xl p-4 border border-white/5">
                 <p className="text-sm text-gray-400">Total Amount</p>
                 <p className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-                  {order.total.toFixed(2)} USDC
+                  {finalTotal.toFixed(2)} USDC
                 </p>
+                {parseFloat(discountAmount) > 0 && (
+                  <p className="text-xs text-green-400">Discount: -{discountAmount} USDC</p>
+                )}
               </div>
               <div className="bg-black/30 rounded-xl p-4 border border-white/5">
                 <p className="text-sm text-gray-400 flex items-center gap-2">
@@ -193,28 +243,118 @@ export default function ManageOrderPage() {
               </div>
               <div className="bg-black/30 rounded-xl p-4 border border-white/5">
                 <p className="text-sm text-gray-400">Items</p>
-                <p className="text-sm">{order.items?.length || 0} item(s)</p>
+                <p className="text-sm">{items.length} item(s)</p>
               </div>
+            </div>
+            <div className="mt-4 bg-black/30 rounded-xl p-4 border border-white/5">
+              <p className="text-sm text-gray-400 flex items-center gap-2">
+                <MessageCircle className="w-4 h-4" /> Staff Note (visible to user)
+              </p>
+              {editing ? (
+                <textarea
+                  value={staffNote}
+                  onChange={(e) => setStaffNote(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-white mt-1"
+                  rows={2}
+                  placeholder="Add a note for the customer..."
+                />
+              ) : (
+                <p className="text-gray-300">{staffNote || 'No note'}</p>
+              )}
             </div>
           </div>
 
           <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Package className="w-5 h-5 text-emerald-400" />
-              Items
-            </h2>
-            <div className="space-y-2">
-              {order.items?.map((item: any) => (
-                <div key={item.id} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
-                  <span className="font-medium">{item.product?.name}</span>
-                  <span className="text-sm text-gray-400">{item.price.toFixed(2)} USDC × {item.quantity}</span>
-                </div>
-              ))}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Package className="w-5 h-5 text-emerald-400" />
+                Items
+              </h2>
+              <button
+                onClick={() => setEditing(!editing)}
+                className="px-4 py-2 rounded-xl bg-white/10 text-sm hover:bg-white/20 transition-all flex items-center gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                {editing ? 'Cancel Edit' : 'Edit Items'}
+              </button>
             </div>
+            {editing ? (
+              <div className="space-y-3">
+                {items.map((item, index) => (
+                  <div key={item.id} className="bg-black/30 rounded-xl p-3 border border-white/5 flex flex-wrap gap-2">
+                    <input
+                      type="text"
+                      value={item.productName}
+                      onChange={(e) => updateItem(index, 'productName', e.target.value)}
+                      className="flex-1 min-w-[120px] px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-white"
+                      placeholder="Product name"
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={item.price}
+                      onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value))}
+                      className="w-24 px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-white"
+                      placeholder="Price"
+                    />
+                    <input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
+                      className="w-20 px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-white"
+                      placeholder="Qty"
+                    />
+                    <button
+                      onClick={() => removeItem(index)}
+                      className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={addItem}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-sm"
+                >
+                  <Plus className="w-4 h-4" /> Add Item
+                </button>
+                <div className="mt-4 flex items-center gap-2">
+                  <label className="text-sm text-gray-400">Discount Amount (USDC):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={discountAmount}
+                    onChange={(e) => setDiscountAmount(e.target.value)}
+                    className="w-32 px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-white"
+                  />
+                </div>
+                <button
+                  onClick={saveOrderDetails}
+                  disabled={updating}
+                  className="mt-4 px-6 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:scale-105 transition-all disabled:opacity-50"
+                >
+                  {updating ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {items.map((item) => (
+                  <div key={item.id} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
+                    <span className="font-medium">{item.productName}</span>
+                    <span className="text-sm text-gray-400">{item.price.toFixed(2)} USDC × {item.quantity}</span>
+                  </div>
+                ))}
+                {parseFloat(discountAmount) > 0 && (
+                  <div className="flex justify-between items-center py-2 border-t border-white/5">
+                    <span className="text-green-400">Discount</span>
+                    <span className="text-green-400">-{discountAmount} USDC</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right column - Controls */}
         <div className="space-y-6">
           <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6">
             <h3 className="font-bold mb-3 text-gray-200">Status</h3>

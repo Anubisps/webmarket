@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Sparkles, Package, Save, Box, Edit } from 'lucide-react'
+import { ArrowLeft, Sparkles, Package, Save, Box, Edit, Upload, Image as ImageIcon, AlertCircle } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export default function EditProductPage() {
   const router = useRouter()
@@ -21,8 +22,13 @@ export default function EditProductPage() {
     isLimited: false,
     discount: '',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    variants: '[]',
+    bannerImage: ''
   })
+  const [productImage, setProductImage] = useState<string>('')
+  const [uploading, setUploading] = useState(false)
+  const [bannerUploading, setBannerUploading] = useState(false)
 
   useEffect(() => {
     fetch(`/api/admin/products/${id}`)
@@ -39,8 +45,11 @@ export default function EditProductPage() {
           isLimited: data.isLimited,
           discount: data.discount?.toString() || '',
           startDate: data.startDate ? new Date(data.startDate).toISOString().slice(0,16) : '',
-          endDate: data.endDate ? new Date(data.endDate).toISOString().slice(0,16) : ''
+          endDate: data.endDate ? new Date(data.endDate).toISOString().slice(0,16) : '',
+          variants: data.variants ? JSON.stringify(data.variants) : '[]',
+          bannerImage: data.bannerImage || ''
         })
+        setProductImage(data.images && data.images.length > 0 ? data.images[0] : '')
       })
       .catch(err => setError('Failed to load product'))
   }, [id])
@@ -49,6 +58,15 @@ export default function EditProductPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    let variants = []
+    try {
+      variants = JSON.parse(form.variants)
+    } catch (err) {
+      setError('Invalid JSON format for variants')
+      setLoading(false)
+      return
+    }
 
     try {
       const res = await fetch(`/api/admin/products/${id}`, {
@@ -60,11 +78,15 @@ export default function EditProductPage() {
           stock: parseInt(form.stock),
           discount: form.discount ? parseFloat(form.discount) : null,
           startDate: form.startDate ? new Date(form.startDate) : null,
-          endDate: form.endDate ? new Date(form.endDate) : null
+          endDate: form.endDate ? new Date(form.endDate) : null,
+          images: productImage ? [productImage] : [],
+          variants,
+          bannerImage: form.bannerImage || null
         })
       })
 
       if (res.ok) {
+        toast.success('✅ Product updated successfully!')
         router.push('/accessadmin/products')
       } else {
         const data = await res.json()
@@ -77,12 +99,72 @@ export default function EditProductPage() {
     }
   }
 
+  const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const res = await fetch(`/api/admin/products/${id}/image`, {
+        method: 'POST',
+        body: formData
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setProductImage(data.images && data.images.length > 0 ? data.images[0] : '')
+        toast.success('Product image uploaded successfully')
+      } else {
+        toast.error('Failed to upload product image')
+      }
+    } catch (err) {
+      toast.error('Network error')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleBannerImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setBannerUploading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const res = await fetch(`/api/admin/products/${id}/banner`, {
+        method: 'POST',
+        body: formData
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setForm({ ...form, bannerImage: data.bannerImage })
+        toast.success('Banner image uploaded successfully')
+      } else {
+        toast.error('Failed to upload banner image')
+      }
+    } catch (err) {
+      toast.error('Network error')
+    } finally {
+      setBannerUploading(false)
+    }
+  }
+
+  const removeProductImage = () => {
+    if (!confirm('Remove product image?')) return
+    setProductImage('')
+    toast.success('Product image removed')
+  }
+
+  const removeBannerImage = () => {
+    if (!confirm('Remove banner image?')) return
+    setForm({ ...form, bannerImage: '' })
+    toast.success('Banner image removed')
+  }
+
   if (!form.name && !error) return <div className="p-8 text-center text-gray-400">Loading product...</div>
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
-      
-      {/* ===== HEADER ===== */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
         <div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-4">
@@ -92,7 +174,7 @@ export default function EditProductPage() {
           <h1 className="text-3xl md:text-4xl font-extrabold">
             Edit <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Product</span>
           </h1>
-          <p className="text-gray-400 text-lg">Update product details.</p>
+          <p className="text-gray-400 text-lg">Update product details, image, and variants.</p>
         </div>
         <Link
           href="/accessadmin/products"
@@ -103,11 +185,65 @@ export default function EditProductPage() {
         </Link>
       </div>
 
-      {/* ===== ALERT ===== */}
       {error && <p className="text-red-400 mb-4">{error}</p>}
 
-      {/* ===== FORM CARD ===== */}
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 max-w-2xl">
+        {/* Product Image */}
+        <div className="mb-6">
+          <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-purple-400" />
+            Product Image (Max 1)
+          </h2>
+          <div className="flex gap-2">
+            {productImage && (
+              <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-white/10">
+                <img src={`/api/images/products/${productImage.split('/').pop()}`} alt="Product" className="w-full h-full object-cover" />
+                <button
+                  onClick={removeProductImage}
+                  className="absolute top-0 right-0 p-1 bg-red-500/80 hover:bg-red-500 text-white text-xs rounded-bl-lg transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            {!productImage && (
+              <label className="w-32 h-32 rounded-lg border border-white/10 border-dashed flex items-center justify-center cursor-pointer hover:bg-white/5 transition-colors">
+                <Upload className="w-6 h-6 text-gray-400" />
+                <input type="file" accept="image/*" className="hidden" onChange={handleProductImageUpload} disabled={uploading} />
+              </label>
+            )}
+          </div>
+          {uploading && <p className="text-sm text-purple-400">Uploading...</p>}
+        </div>
+
+        {/* Banner Image */}
+        <div className="mb-6">
+          <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-blue-400" />
+            Banner Image (Max 1)
+          </h2>
+          <div className="flex gap-2">
+            {form.bannerImage && (
+              <div className="relative w-32 h-20 rounded-lg overflow-hidden border border-white/10">
+                <img src={form.bannerImage} alt="Banner" className="w-full h-full object-cover" />
+                <button
+                  onClick={removeBannerImage}
+                  className="absolute top-0 right-0 p-1 bg-red-500/80 hover:bg-red-500 text-white text-xs rounded-bl-lg transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            {!form.bannerImage && (
+              <label className="w-32 h-20 rounded-lg border border-white/10 border-dashed flex items-center justify-center cursor-pointer hover:bg-white/5 transition-colors">
+                <Upload className="w-6 h-6 text-gray-400" />
+                <input type="file" accept="image/*" className="hidden" onChange={handleBannerImageUpload} disabled={bannerUploading} />
+              </label>
+            )}
+          </div>
+          {bannerUploading && <p className="text-sm text-purple-400">Uploading...</p>}
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -171,59 +307,6 @@ export default function EditProductPage() {
               className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
               value={form.category}
               onChange={e => setForm({ ...form, category: e.target.value })}
-            />
-          </div>
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm text-gray-400">
-              <input
-                type="checkbox"
-                checked={form.isActive}
-                onChange={e => setForm({ ...form, isActive: e.target.checked })}
-                className="w-4 h-4 accent-purple-500"
-              />
-              Active
-            </label>
-            <label className="flex items-center gap-2 text-sm text-gray-400">
-              <input
-                type="checkbox"
-                checked={form.isLimited}
-                onChange={e => setForm({ ...form, isLimited: e.target.checked })}
-                className="w-4 h-4 accent-purple-500"
-              />
-              Limited Time
-            </label>
-          </div>
-          {form.isLimited && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-400">Start Date</label>
-                <input
-                  type="datetime-local"
-                  className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                  value={form.startDate}
-                  onChange={e => setForm({ ...form, startDate: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-400">End Date</label>
-                <input
-                  type="datetime-local"
-                  className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                  value={form.endDate}
-                  onChange={e => setForm({ ...form, endDate: e.target.value })}
-                />
-              </div>
-            </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-400">Discount (%)</label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-              value={form.discount}
-              onChange={e => setForm({ ...form, discount: e.target.value })}
             />
           </div>
           <button

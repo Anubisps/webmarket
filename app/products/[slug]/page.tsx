@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ShoppingCart, Shield, Zap, Clock, Star, Sparkles, Box, CheckCircle, Package, Truck, CreditCard } from 'lucide-react'
+import { ArrowLeft, ShoppingCart, Shield, Zap, Clock, Star, Truck, CheckCircle, AlertCircle, Calendar } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -13,144 +13,136 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     notFound()
   }
 
-  // Premium features list
-  const features = [
-    { icon: Shield, text: '100% Secure Payment' },
-    { icon: Zap, text: 'Instant Digital Delivery' },
-    { icon: Clock, text: '24/7 Customer Support' },
-    { icon: Package, text: 'Lifetime Warranty' },
-  ]
+  // ✅ Use API endpoint for images to avoid 403 errors
+  const firstImage = product.images && product.images.length > 0 ? product.images[0] : null
+  const imageSrc = firstImage ? `/api/images/products/${firstImage.split('/').pop()}` : null
+  const bannerSrc = product.bannerImage ? `/api/images/products/${product.bannerImage.split('/').pop()}` : null
+
+  // ✅ Additional details (you can edit these later)
+  const estimatedDelivery = 'Instant (after payment)'
+  const stockStatus = product.stock > 0 ? 'In Stock' : 'Out of Stock'
+  const availabilityEnd = product.isLimited ? 'Limited time offer' : 'Always available'
+  const minPurchase = 1
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white selection:bg-purple-500 selection:text-white py-12">
-      
-      {/* ===== BACKGROUND AMBIENCE ===== */}
-      <div className="fixed inset-0 z-0">
-        <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-purple-600/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-pink-600/10 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[50%] h-[50%] bg-indigo-500/5 rounded-full blur-3xl"></div>
-      </div>
+    <div className="min-h-screen bg-[#0a0a0f] text-white py-8 md:py-12">
+      <div className="container mx-auto px-4 max-w-6xl relative z-10">
+        <div className="fixed inset-0 z-0">
+          <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-purple-600/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-pink-600/10 rounded-full blur-3xl"></div>
+        </div>
 
-      <div className="container mx-auto px-4 max-w-5xl relative z-10">
-        
-        {/* ===== BACK BUTTON ===== */}
         <Link href="/products" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors group">
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           <span>Back to Products</span>
         </Link>
 
-        {/* ===== MAIN PRODUCT CARD ===== */}
         <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.4)]">
-          
-          {/* Product Image Banner */}
-          <div className="h-56 md:h-72 bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500 relative">
-            <div className="absolute inset-0 bg-black/30"></div>
-            <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
-              <div>
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-medium text-white">
-                  <Sparkles className="w-3 h-3" />
-                  {product.category}
+          {/* ✅ Hero Banner (only if available) */}
+          {bannerSrc && (
+            <div className="relative w-full h-48 md:h-56 overflow-hidden">
+              <img src={bannerSrc} alt="Banner" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <div className="flex items-center gap-2 text-yellow-400">
+                  <Star className="w-12 h-12 fill-current" />
+                  <span className="text-4xl font-bold">4.9</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col md:flex-row">
+            {/* ✅ Left Column – Image & Quick Info */}
+            <div className="md:w-2/5 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/10">
+              <div className="w-full aspect-square max-w-[400px] relative rounded-xl overflow-hidden bg-black/30 border border-white/10">
+                {imageSrc ? (
+                  <img src={imageSrc} alt={product.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-500" />
+                )}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-gray-300 flex items-center gap-1">
+                  <Shield className="w-3 h-3" /> Secure
                 </span>
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-gray-300 flex items-center gap-1">
+                  <Zap className="w-3 h-3" /> Instant
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-gray-300 flex items-center gap-1">
+                  <Truck className="w-3 h-3" /> Fast Delivery
+                </span>
+              </div>
+            </div>
+
+            {/* ✅ Right Column – Product Details */}
+            <div className="md:w-3/5 p-6">
+              {/* Title & Category */}
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-extrabold">{product.name}</h1>
+                  <p className="text-sm text-gray-400 mt-1">Category: <span className="text-purple-400">{product.category}</span></p>
+                </div>
                 {product.isLimited && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-500/80 backdrop-blur-md rounded-full text-xs font-medium text-white ml-2">
-                    🔥 Limited Edition
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 flex items-center gap-1 shrink-0">
+                    <AlertCircle className="w-3 h-3" /> Limited Edition
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1 text-yellow-400">
-                <Star className="w-5 h-5 fill-current" />
-                <span className="text-sm font-medium">4.9</span>
-              </div>
-            </div>
-          </div>
 
-          <div className="p-8 md:p-10">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-6">
-              <div>
-                <h1 className="text-4xl md:text-5xl font-extrabold mb-2">{product.name}</h1>
-                <p className="text-gray-400 text-lg">{product.description}</p>
-              </div>
-              <div className="text-right md:min-w-[180px]">
-                <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  {product.price.toFixed(2)} USDC
-                </div>
-                <p className="text-xs text-gray-500 mt-1">+ tax (if applicable)</p>
-              </div>
-            </div>
+              {/* Description */}
+              <p className="text-gray-300 text-lg leading-relaxed mb-6">{product.description}</p>
 
-            {/* ===== PREMIUM FEATURES BAR ===== */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-              {features.map((feature, i) => (
-                <div key={i} className="bg-white/5 rounded-xl p-3 flex items-center gap-3 border border-white/5 hover:border-purple-500/30 transition-colors">
-                  <feature.icon className="w-5 h-5 text-purple-400" />
-                  <span className="text-xs font-medium text-gray-300">{feature.text}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* ===== STOCK & ACTIONS ===== */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pt-6 border-t border-white/10">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-sm">
-                  {product.stock > 0 ? (
-                    <>
-                      <Box className="w-5 h-5 text-emerald-400" />
-                      <span className="text-emerald-400 font-medium">{product.stock} available</span>
-                    </>
-                  ) : (
-                    <>
-                      <Box className="w-5 h-5 text-red-400" />
-                      <span className="text-red-400 font-medium">Out of stock</span>
-                    </>
+              {/* ✅ Details Grid */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-black/30 rounded-xl p-3 border border-white/5">
+                  <p className="text-xs text-gray-400">Price</p>
+                  <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    ${product.price.toFixed(2)} USDC
+                  </p>
+                  {product.discount && (
+                    <p className="text-xs text-green-400">🔥 {product.discount}% discount applied</p>
                   )}
                 </div>
-                {product.discount && (
-                  <span className="px-3 py-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-400 text-xs font-bold text-gray-900">
-                    🔥 {product.discount}% OFF
-                  </span>
-                )}
+                <div className="bg-black/30 rounded-xl p-3 border border-white/5">
+                  <p className="text-xs text-gray-400">Stock Status</p>
+                  <p className="text-lg font-medium flex items-center gap-2">
+                    {stockStatus === 'In Stock' ? (
+                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-400" />
+                    )}
+                    <span className={stockStatus === 'In Stock' ? 'text-emerald-400' : 'text-red-400'}>
+                      {stockStatus}
+                    </span>
+                  </p>
+                </div>
+                <div className="bg-black/30 rounded-xl p-3 border border-white/5">
+                  <p className="text-xs text-gray-400">Estimated Delivery</p>
+                  <p className="text-sm flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-blue-400" />
+                    <span>{estimatedDelivery}</span>
+                  </p>
+                </div>
+                <div className="bg-black/30 rounded-xl p-3 border border-white/5">
+                  <p className="text-xs text-gray-400">Availability</p>
+                  <p className="text-sm flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-yellow-400" />
+                    <span>{availabilityEnd}</span>
+                  </p>
+                </div>
               </div>
 
+              {/* ✅ Buy Now Button */}
               <Link
                 href={`/checkout/${product.id}`}
-                className={`flex items-center gap-3 px-8 py-4 rounded-xl font-bold transition-all duration-300 ${
-                  product.stock > 0
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:shadow-[0_0_50px_rgba(168,85,247,0.5)] hover:scale-105'
-                    : 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                }`}
+                className="block w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-center hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:scale-[1.02] transition-all"
               >
-                <ShoppingCart className="w-5 h-5" />
-                {product.stock > 0 ? 'Buy Now' : 'Out of Stock'}
+                <ShoppingCart className="w-5 h-5 inline mr-2" />
+                Buy Now
               </Link>
             </div>
           </div>
         </div>
-
-        {/* ===== EXTRA DETAILS SECTION ===== */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-purple-500/30 transition-colors">
-            <div className="flex items-center gap-3 mb-2">
-              <CreditCard className="w-5 h-5 text-purple-400" />
-              <h3 className="font-bold">Payment Methods</h3>
-            </div>
-            <p className="text-sm text-gray-400">Crypto, PayPal, Western Union, Ria, MoneyGram & more.</p>
-          </div>
-          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-purple-500/30 transition-colors">
-            <div className="flex items-center gap-3 mb-2">
-              <Truck className="w-5 h-5 text-purple-400" />
-              <h3 className="font-bold">Delivery</h3>
-            </div>
-            <p className="text-sm text-gray-400">Instant delivery after payment verification.</p>
-          </div>
-          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-purple-500/30 transition-colors">
-            <div className="flex items-center gap-3 mb-2">
-              <Shield className="w-5 h-5 text-purple-400" />
-              <h3 className="font-bold">Guarantee</h3>
-            </div>
-            <p className="text-sm text-gray-400">100% satisfaction or full refund within 14 days.</p>
-          </div>
-        </div>
-
       </div>
     </div>
   )

@@ -2,12 +2,21 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { User, Shield, LogOut, LayoutDashboard } from 'lucide-react'
+import { User, Shield, LogOut, Settings } from 'lucide-react'
 
 export function ProfileDropdown() {
   const { data: session } = useSession()
   const [open, setOpen] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // Load photo from localStorage
+    const storedPhoto = localStorage.getItem('profile_photo')
+    if (storedPhoto) {
+      setPhotoUrl(storedPhoto)
+    }
+  }, [])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -23,6 +32,7 @@ export function ProfileDropdown() {
 
   const username = session.user?.username || session.user?.email?.split('@')[0] || 'User'
   const role = session.user?.role || 'user'
+  const firstLetter = username.charAt(0).toUpperCase()
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -30,42 +40,47 @@ export function ProfileDropdown() {
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-1 hover:scale-105 transition shadow-md"
       >
-        <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-sm">
-          {username.charAt(0).toUpperCase()}
+        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-purple-600 font-bold text-sm overflow-hidden">
+          {photoUrl ? (
+            <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            firstLetter
+          )}
         </div>
+        <span className="hidden sm:inline font-medium text-gray-900">{username}</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-fade-in z-50">
-          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-            <p className="font-medium text-gray-900 dark:text-white">{username}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{role}</p>
+        <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50">
+          <div className="px-4 py-3 border-b border-gray-200">
+            <p className="font-medium text-gray-900">{username}</p>
+            <p className="text-xs text-gray-500 capitalize">{role}</p>
           </div>
           <div className="p-2">
             <Link
-              href="/dashboard"
+              href="/dashboard/profile"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-900 dark:text-white"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-gray-900"
             >
-              <LayoutDashboard className="w-4 h-4" />
-              Dashboard
+              <Settings className="w-4 h-4" />
+              Profile Settings
             </Link>
             <Link
               href="/dashboard/security"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-900 dark:text-white"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-gray-900"
             >
               <Shield className="w-4 h-4" />
               Security Settings
             </Link>
           </div>
-          <div className="border-t border-gray-200 dark:border-gray-700 p-2">
+          <div className="border-t border-gray-200 p-2">
             <button
               onClick={() => {
                 setOpen(false)
-                window.location.href = '/api/auth/signout?callbackUrl=http://88.214.26.201:3000'
+                window.location.href = '/api/auth/signout'
               }}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition w-full text-left text-red-600 dark:text-red-400 font-medium"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 transition w-full text-left text-red-600 font-medium"
             >
               <LogOut className="w-4 h-4" />
               Logout

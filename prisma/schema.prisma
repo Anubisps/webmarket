@@ -7,6 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model TwoFactorDevice {
+  id          String    @id @default(cuid())
+  userId      String
+  deviceName  String
+  ipAddress   String?
+  userAgent   String?
+  lastUsedAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id])
+}
+
 model User {
   id            String    @id @default(cuid())
   username      String    @unique
@@ -16,6 +29,8 @@ model User {
   twoFactorSecret String?
   role          String    @default("user")
   banned        Boolean   @default(false)
+  referredBy    String?
+  referralDiscountUsed Boolean @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -27,7 +42,10 @@ model User {
   disputes      Dispute[]
   ticketReplies TicketReply[]
   ticketAttachments TicketAttachment[]
+  affiliate     Affiliate?
   twoFactorDevices TwoFactorDevice[]
+  referrer      User?      @relation("UserReferral", fields: [referredBy], references: [id])
+  referredUsers User[]     @relation("UserReferral")
 }
 
 model Product {
@@ -39,11 +57,13 @@ model Product {
   stock       Int
   category    String
   images      String[]  @default([])
+  bannerImage String?
   isActive    Boolean   @default(true)
   isLimited   Boolean   @default(false)
   discount    Float?
   startDate   DateTime?
   endDate     DateTime?
+  variants    Json?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -59,11 +79,15 @@ model Order {
   ign         String?
   contactEmail String?
   total       Float
+  discountAmount Float?
+  staffNote   String?
   status      String    @default("processing")
   paymentStatus String  @default("pending")
   paymentMethod String?
   transactionId String?
   notes       String?
+  ticketId    String?
+  bannerImage String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -71,6 +95,7 @@ model Order {
   items       OrderItem[]
   disputes    Dispute[]
   ticket      Ticket?   @relation("OrderTicket")
+  affiliateReferrals AffiliateReferral[]
 }
 
 model OrderItem {
@@ -231,15 +256,61 @@ model Discount {
   updatedAt   DateTime  @updatedAt
 }
 
-model TwoFactorDevice {
+model Affiliate {
   id          String    @id @default(cuid())
-  userId      String
-  deviceName  String
-  ipAddress   String?
-  userAgent   String?
-  lastUsedAt  DateTime  @default(now())
+  userId      String    @unique
+  code        String    @unique
+  commission  Float     @default(10)
+  balance     Float     @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   user        User      @relation(fields: [userId], references: [id])
+  referrals   AffiliateReferral[]
+}
+
+model AffiliateReferral {
+  id          String    @id @default(cuid())
+  affiliateId String
+  orderId     String
+  commission  Float
+  createdAt   DateTime  @default(now())
+
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id])
+  order       Order     @relation(fields: [orderId], references: [id])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LiveChatSession {
+  id          String           @id @default(cuid())
+  visitorId   String           @unique
+  visitorName String?
+  visitorEmail String?
+  ipAddress   String?
+  status      String           @default("active")
+  isTyping    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  messages    LiveChatMessage[]
+}
+
+model LiveChatMessage {
+  id          String           @id @default(cuid())
+  sessionId   String
+  sender      String
+  message     String
+  status      String           @default("sent")
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  session     LiveChatSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }

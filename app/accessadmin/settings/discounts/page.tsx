@@ -1,12 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Sparkles, Tag, Plus, Trash2, Clock, Box, Save, X, CheckCircle } from 'lucide-react'
+import { Sparkles, Tag, Plus, Trash2, Clock, Box, Save, X, CheckCircle, Edit2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function DiscountsPage() {
   const [codes, setCodes] = useState<any[]>([])
   const [form, setForm] = useState({ code: '', discount: '', expiresAt: '', usageLimit: '' })
   const [loading, setLoading] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
   const loadCodes = async () => {
@@ -27,18 +28,24 @@ export default function DiscountsPage() {
     }
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/settings/discounts', {
-        method: 'POST',
+      const method = editingId ? 'PUT' : 'POST'
+      const url = editingId 
+        ? `/api/admin/settings/discounts/${editingId}`
+        : '/api/admin/settings/discounts'
+      
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       })
       if (res.ok) {
-        toast.success('✅ Discount code created!')
+        toast.success(editingId ? '✅ Discount updated!' : '✅ Discount code created!')
         setForm({ code: '', discount: '', expiresAt: '', usageLimit: '' })
+        setEditingId(null)
         loadCodes()
       } else {
         const data = await res.json()
-        toast.error(data.error || 'Failed to create discount')
+        toast.error(data.error || 'Operation failed')
       }
     } catch (err) {
       toast.error('Network error – please try again')
@@ -67,10 +74,24 @@ export default function DiscountsPage() {
     }
   }
 
+  const startEdit = (code: any) => {
+    setForm({
+      code: code.code,
+      discount: code.discount.toString(),
+      expiresAt: code.expiresAt ? new Date(code.expiresAt).toISOString().slice(0,16) : '',
+      usageLimit: code.usageLimit?.toString() || ''
+    })
+    setEditingId(code.id)
+  }
+
+  const cancelEdit = () => {
+    setForm({ code: '', discount: '', expiresAt: '', usageLimit: '' })
+    setEditingId(null)
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       
-      {/* ===== HEADER ===== */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
         <div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-4">
@@ -84,11 +105,10 @@ export default function DiscountsPage() {
         </div>
       </div>
 
-      {/* ===== CREATE FORM ===== */}
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 mb-8">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Plus className="w-5 h-5 text-yellow-400" />
-          Create New Discount
+          {editingId ? <Edit2 className="w-5 h-5 text-blue-400" /> : <Plus className="w-5 h-5 text-yellow-400" />}
+          {editingId ? 'Edit Discount' : 'Create New Discount'}
         </h2>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
@@ -96,6 +116,7 @@ export default function DiscountsPage() {
             className="px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500/50 focus:ring-2 focus:ring-yellow-500/20 transition-all"
             value={form.code}
             onChange={e => setForm({ ...form, code: e.target.value })}
+            disabled={!!editingId}
           />
           <input
             placeholder="Discount % (e.g., 20)"
@@ -118,17 +139,27 @@ export default function DiscountsPage() {
             value={form.usageLimit}
             onChange={e => setForm({ ...form, usageLimit: e.target.value })}
           />
-          <button
-            type="submit"
-            disabled={loading}
-            className="md:col-span-2 py-4 rounded-xl bg-gradient-to-r from-yellow-400 to-orange-400 text-gray-900 font-bold hover:shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Creating...' : 'Create Discount'}
-          </button>
+          <div className="md:col-span-2 flex gap-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-4 rounded-xl bg-gradient-to-r from-yellow-400 to-orange-400 text-gray-900 font-bold hover:shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Processing...' : editingId ? 'Update Discount' : 'Create Discount'}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="py-4 px-6 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
-      {/* ===== DISCOUNTS TABLE ===== */}
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -158,13 +189,19 @@ export default function DiscountsPage() {
                       {code.expiresAt ? new Date(code.expiresAt).toLocaleDateString() : 'Never'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-400">{code.usageCount || 0} / {code.usageLimit || '∞'}</td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => startEdit(code)}
+                        className="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => deleteCode(code.id)}
                         disabled={deleting === code.id}
-                        className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
                       >
-                        {deleting === code.id ? 'Deleting...' : <Trash2 className="w-4 h-4" />}
+                        {deleting === code.id ? <Clock className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                       </button>
                     </td>
                   </tr>

@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, CreditCard, User, Mail, ArrowRight, Sparkles, Lock, Shield, Zap } from 'lucide-react'
+import { CheckCircle, CreditCard, User, Mail, ArrowRight, Loader2, Tag } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface PaymentMethod {
   id: string
@@ -21,32 +22,139 @@ interface CheckoutUIProps {
 
 export default function CheckoutUI({ productId, productName, price, methods, userId }: CheckoutUIProps) {
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState<string>('')
   const [ign, setIgn] = useState('')
   const [contactEmail, setContactEmail] = useState('')
+  const [discountCode, setDiscountCode] = useState('')
+  const [discountApplied, setDiscountApplied] = useState<{ amount: number; code: string } | null>(null)
+  const [isVerifyingDiscount, setIsVerifyingDiscount] = useState(false)
+  const [discountError, setDiscountError] = useState('')
+  const [isFetching, setIsFetching] = useState(false)
+  const [fetchError, setFetchError] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [orderCreated, setOrderCreated] = useState(false)
   const [orderId, setOrderId] = useState('')
   const [showInstructions, setShowInstructions] = useState(false)
   const [selectedMethodDetails, setSelectedMethodDetails] = useState<PaymentMethod | null>(null)
+  const [fetchedUsername, setFetchedUsername] = useState<string | null>(null)
+  const [csrfToken, setCsrfToken] = useState<string>('')
+  
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null)
+
+  // ✅ Wait for the component to mount on the client
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // ✅ Fetch CSRF token from cookie (only after mounted)
+  useEffect(() => {
+    if (!mounted) return
+    const cookies = document.cookie.split(';')
+    const csrfCookie = cookies.find(c => c.trim().startsWith('csrf_token='))
+    if (csrfCookie) {
+      setCsrfToken(csrfCookie.split('=')[1])
+    } else {
+      console.warn('⚠️ CSRF token not found in cookies')
+    }
+  }, [mounted])
+
+  const finalPrice = Math.max(price - (discountApplied?.amount || 0), 0)
+
+  // ✅ Button disabled check (only after mounted)
+  const isButtonDisabled = !mounted || loading || !selectedMethod || !ign.trim() || !contactEmail.trim() || !csrfToken
+
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) {
+      setDiscountError('Please enter a discount code')
+      return
+    }
+    setIsVerifyingDiscount(true)
+    setDiscountError('')
+    try {
+      const res = await fetch('/api/checkout/verify-discount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: discountCode.trim() })
+      })
+      const data = await res.json()
+      if (res.ok && data.valid) {
+        setDiscountApplied({ amount: data.discount, code: discountCode.trim() })
+        toast.success(`✅ Discount applied: ${data.discount} USDC off!`)
+      } else {
+        setDiscountApplied(null)
+        setDiscountError(data.error || 'Invalid discount code')
+      }
+    } catch (err) {
+      setDiscountError('Failed to verify discount')
+    } finally {
+      setIsVerifyingDiscount(false)
+    }
+  }
+
+  const handleRemoveDiscount = () => {
+    setDiscountApplied(null)
+    setDiscountCode('')
+    setDiscountError('')
+    toast('Discount removed')
+  }
+
+  useEffect(() => {
+    if (!mounted || !ign.trim() || !/^\d+$/.test(ign)) {
+      setIsFetching(false)
+      setFetchedUsername(null)
+      return
+    }
+
+    setIsFetching(true)
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/checkout/fetch-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: ign })
+        })
+        const data = await res.json()
+        if (res.ok) {
+          setFetchedUsername(data.username)
+          setFetchError('')
+        } else {
+          setFetchError(data.error || 'Failed to fetch username')
+          setFetchedUsername(null)
+        }
+      } catch (err) {
+        setFetchError('Network error')
+        setFetchedUsername(null)
+      } finally {
+        setIsFetching(false)
+      }
+    }, 800)
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    }
+  }, [ign, mounted])
 
   const handlePlaceOrder = async () => {
     if (!selectedMethod) {
       setError('Please select a payment method')
       return
     }
-
     if (!ign.trim()) {
       setError('Please enter your In-Game Name / ID')
       return
     }
-
     if (!contactEmail.trim()) {
       setError('Please enter your contact email')
       return
     }
-
+    if (!csrfToken) {
+      setError('CSRF token missing. Please refresh the page.')
+      return
+    }
     const method = methods.find(m => m.id === selectedMethod)
     if (!method) return
 
@@ -56,13 +164,18 @@ export default function CheckoutUI({ productId, productName, price, methods, use
     try {
       const res = await fetch('/api/checkout/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken
+        },
         body: JSON.stringify({
           productId,
           providerId: selectedMethod,
           userId,
           ign: ign.trim(),
-          contactEmail: contactEmail.trim()
+          contactEmail: contactEmail.trim(),
+          discountCode: discountApplied?.code || null,
+          referralCode: null
         })
       })
 
@@ -72,7 +185,6 @@ export default function CheckoutUI({ productId, productName, price, methods, use
         setOrderId(data.orderId)
         setOrderCreated(true)
         setSelectedMethodDetails(method)
-
         if (data.manual) {
           setShowInstructions(true)
         } else {
@@ -92,11 +204,7 @@ export default function CheckoutUI({ productId, productName, price, methods, use
     return (
       <div className="min-h-screen bg-[#0a0a0f] text-white py-20">
         <div className="container mx-auto px-4 max-w-2xl relative z-10">
-          {/* Floating background glow */}
-          <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-green-500/10 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 relative z-10">
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8">
             <div className="bg-gradient-to-r from-green-500 to-emerald-700 text-white p-6 rounded-2xl shadow-lg mb-6">
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-8 h-8" />
@@ -106,7 +214,6 @@ export default function CheckoutUI({ productId, productName, price, methods, use
                 </div>
               </div>
             </div>
-
             <h2 className="text-2xl font-bold mb-4">{selectedMethodDetails.label}</h2>
             <div className="bg-black/30 rounded-xl p-4 mb-4 whitespace-pre-wrap border border-white/10">
               {selectedMethodDetails.instructions || 'No instructions provided.'}
@@ -117,6 +224,11 @@ export default function CheckoutUI({ productId, productName, price, methods, use
                 <code className="block bg-black/50 p-3 rounded mt-1 break-all text-sm text-gray-300">
                   {selectedMethodDetails.walletAddress}
                 </code>
+              </div>
+            )}
+            {discountApplied && (
+              <div className="bg-green-500/10 rounded-xl p-3 border border-green-500/30 mb-4">
+                <p className="text-sm text-green-400">✅ Referral discount applied: {discountApplied.amount} USDC</p>
               </div>
             )}
             <p className="text-gray-400 text-sm mt-4">
@@ -145,11 +257,7 @@ export default function CheckoutUI({ productId, productName, price, methods, use
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white py-20">
       <div className="container mx-auto px-4 max-w-2xl relative z-10">
-        {/* Floating background glow */}
-        <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-pink-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 relative z-10">
+        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8">
           <div className="flex items-center gap-3 mb-6">
             <CreditCard className="w-8 h-8 text-purple-400" />
             <h1 className="text-3xl font-bold">Checkout</h1>
@@ -157,24 +265,51 @@ export default function CheckoutUI({ productId, productName, price, methods, use
 
           <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
             <h2 className="text-xl font-bold mb-1">{productName}</h2>
-            <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              {price.toFixed(2)} USDC
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                {finalPrice.toFixed(2)} USDC
+              </p>
+              {discountApplied && (
+                <p className="text-sm text-green-400">-{discountApplied.amount} USDC</p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1 flex items-center gap-2">
-                <User className="w-4 h-4" /> In-Game Name / ID
+                <User className="w-4 h-4" /> In-Game ID (numbers only)
               </label>
               <input
                 type="text"
                 required
-                placeholder="e.g., Warrior#1234"
+                pattern="[0-9]*"
+                inputMode="numeric"
+                placeholder="e.g., 123456789"
                 className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
                 value={ign}
-                onChange={e => setIgn(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '')
+                  setIgn(value)
+                }}
               />
+              {isFetching && (
+                <div className="mt-1 flex items-center gap-2 text-sm text-purple-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Fetching username...
+                </div>
+              )}
+              {fetchedUsername && !isFetching && (
+                <div className="mt-1 text-sm text-emerald-400 flex items-center gap-1">
+                  <CheckCircle className="w-4 h-4" />
+                  Username: {fetchedUsername}
+                </div>
+              )}
+              {fetchError && !isFetching && (
+                <div className="mt-1 text-sm text-red-400">
+                  {fetchError}
+                </div>
+              )}
             </div>
 
             <div>
@@ -187,8 +322,44 @@ export default function CheckoutUI({ productId, productName, price, methods, use
                 placeholder="you@example.com"
                 className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
                 value={contactEmail}
-                onChange={e => setContactEmail(e.target.value)}
+                onChange={(e) => setContactEmail(e.target.value)}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 flex items-center gap-2">
+                <Tag className="w-4 h-4" /> Referral Discount (optional)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter discount code"
+                  className="flex-1 px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                  disabled={!!discountApplied}
+                />
+                {!discountApplied ? (
+                  <button
+                    onClick={handleApplyDiscount}
+                    disabled={isVerifyingDiscount || !discountCode.trim()}
+                    className="px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:scale-105 transition-all disabled:opacity-50"
+                  >
+                    {isVerifyingDiscount ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Apply'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleRemoveDiscount}
+                    className="px-4 py-3 rounded-xl bg-red-500/10 text-red-400 border border-red-500/30 font-bold hover:bg-red-500/20 transition-all"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              {discountError && <p className="text-sm text-red-400 mt-1">{discountError}</p>}
+              {discountApplied && (
+                <p className="text-sm text-green-400 mt-1">✅ {discountApplied.code}: {discountApplied.amount} USDC off</p>
+              )}
             </div>
 
             <div>
@@ -219,9 +390,17 @@ export default function CheckoutUI({ productId, productName, price, methods, use
 
             {error && <p className="text-red-400 text-sm">{error}</p>}
 
+            <div className="text-xs text-gray-400 p-3 bg-black/30 rounded-xl">
+              <p>Mounted: {mounted ? '✅' : '❌'}</p>
+              <p>CSRF Token: {csrfToken ? '✅ Present' : '❌ Missing'}</p>
+              <p>Selected Method: {selectedMethod || '❌ None'}</p>
+              <p>IGN: {ign || '❌ Empty'}</p>
+              <p>Email: {contactEmail || '❌ Empty'}</p>
+            </div>
+
             <button
               onClick={handlePlaceOrder}
-              disabled={loading || !selectedMethod || !ign.trim() || !contactEmail.trim()}
+              disabled={isButtonDisabled}
               className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:shadow-[0_0_50px_rgba(168,85,247,0.5)] hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (

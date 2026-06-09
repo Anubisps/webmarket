@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
-import { ShoppingBag, Ticket, Shield, ArrowRight, CheckCircle, XCircle, TrendingUp, Clock, User, Star, Box } from 'lucide-react'
+import { ShoppingBag, Ticket, Shield, ArrowRight, CheckCircle, XCircle, TrendingUp, Clock, User, Star, Box, Gift } from 'lucide-react'
 
 export default async function DashboardPage() {
   const session = await getServerSession()
@@ -28,13 +28,11 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-[#0a0a0f] text-white selection:bg-purple-500 selection:text-white py-12">
       <div className="container mx-auto px-4 max-w-6xl relative z-10">
         
-        {/* ===== BACKGROUND AMBIENCE ===== */}
         <div className="fixed inset-0 z-0">
           <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-emerald-600/10 rounded-full blur-3xl"></div>
           <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-teal-600/10 rounded-full blur-3xl"></div>
         </div>
 
-        {/* ===== WELCOME HEADER ===== */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10">
           <div>
             <h1 className="text-4xl md:text-5xl font-extrabold mb-2">
@@ -48,9 +46,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* ===== STATS GRID ===== */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {/* Orders Stat */}
           <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-emerald-500/30 transition-all hover:scale-[1.02]">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-400">Total Orders</p>
@@ -60,7 +56,6 @@ export default async function DashboardPage() {
             <p className="text-xs text-gray-500 mt-1">+12% this month</p>
           </div>
 
-          {/* Tickets Stat */}
           <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-blue-500/30 transition-all hover:scale-[1.02]">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-400">Support Tickets</p>
@@ -70,7 +65,6 @@ export default async function DashboardPage() {
             <p className="text-xs text-gray-500 mt-1">2 pending response</p>
           </div>
 
-          {/* Account Status Stat */}
           <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-yellow-500/30 transition-all hover:scale-[1.02]">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-400">Account Status</p>
@@ -86,7 +80,6 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          {/* 2FA Status Stat */}
           <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-purple-500/30 transition-all hover:scale-[1.02]">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-400">2FA Security</p>
@@ -103,9 +96,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* ===== ACTION CARDS ===== */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Orders Card */}
           <Link href="/dashboard/orders" className="group bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-emerald-500/50 hover:shadow-[0_0_40px_rgba(16,185,129,0.1)] transition-all flex flex-col">
             <div className="flex items-center gap-4 mb-3">
               <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500">
@@ -119,7 +110,6 @@ export default async function DashboardPage() {
             </div>
           </Link>
 
-          {/* Tickets Card */}
           <Link href="/dashboard/tickets" className="group bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-blue-500/50 hover:shadow-[0_0_40px_rgba(59,130,246,0.1)] transition-all flex flex-col">
             <div className="flex items-center gap-4 mb-3">
               <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500">
@@ -133,17 +123,16 @@ export default async function DashboardPage() {
             </div>
           </Link>
 
-          {/* Security Card */}
-          <Link href="/dashboard/security" className="group bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-purple-500/50 hover:shadow-[0_0_40px_rgba(168,85,247,0.1)] transition-all flex flex-col">
+          <Link href="/dashboard/affiliate" className="group bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-yellow-500/50 hover:shadow-[0_0_40px_rgba(234,179,8,0.1)] transition-all flex flex-col">
             <div className="flex items-center gap-4 mb-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
-                <Shield className="w-6 h-6 text-white" />
+              <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500">
+                <Gift className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-xl font-bold">Security</h3>
+              <h3 className="text-xl font-bold">Affiliate</h3>
             </div>
-            <p className="text-gray-400 text-sm flex-1">Manage 2FA, devices, and account security.</p>
-            <div className="mt-4 flex items-center justify-end gap-1 text-purple-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
-              View Security <ArrowRight className="w-3 h-3" />
+            <p className="text-gray-400 text-sm flex-1">Earn commission by referring friends.</p>
+            <div className="mt-4 flex items-center justify-end gap-1 text-yellow-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
+              View Affiliate <ArrowRight className="w-3 h-3" />
             </div>
           </Link>
         </div>

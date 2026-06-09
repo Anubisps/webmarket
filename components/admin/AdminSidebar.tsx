@@ -15,9 +15,13 @@ import {
   Shield,
   LogOut,
   Sparkles,
-  Home
+  Home,
+  Mail,
+  MessageCircle,
+  Gift
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
+import { useState, useEffect } from 'react'
 
 interface AdminSidebarProps {
   basePath?: string
@@ -25,6 +29,31 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ basePath = '/accessadmin' }: AdminSidebarProps) {
   const pathname = usePathname()
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await fetch('/api/admin/contact')
+      const data = await res.json()
+      const unread = data.filter((m: any) => !m.isRead).length
+      setUnreadCount(unread)
+    } catch (err) {
+      console.error('Failed to fetch unread count')
+    }
+  }
+
+  useEffect(() => {
+    fetchUnreadCount()
+    const handleContactUpdate = () => fetchUnreadCount()
+    window.addEventListener('contact-update', handleContactUpdate)
+    return () => window.removeEventListener('contact-update', handleContactUpdate)
+  }, [])
+
+  useEffect(() => {
+    if (pathname.includes('/accessadmin/contact')) {
+      fetchUnreadCount()
+    }
+  }, [pathname])
 
   const links = [
     { href: `${basePath}`, label: 'Dashboard', icon: LayoutDashboard },
@@ -32,11 +61,14 @@ export function AdminSidebar({ basePath = '/accessadmin' }: AdminSidebarProps) {
     { href: `${basePath}/orders`, label: 'Orders', icon: ShoppingCart },
     { href: `${basePath}/users`, label: 'Users', icon: Users },
     { href: `${basePath}/tickets`, label: 'Tickets', icon: Ticket },
+    { href: `${basePath}/contact`, label: 'Contact', icon: Mail, badge: unreadCount },
+    { href: `${basePath}/livechat`, label: 'Live Chat', icon: MessageCircle, badge: null },
     { href: `${basePath}/analytics`, label: 'Analytics', icon: BarChart3 },
     { href: `${basePath}/settings/general`, label: 'General', icon: Globe },
     { href: `${basePath}/settings/payments`, label: 'Payments', icon: CreditCard },
     { href: `${basePath}/settings/discounts`, label: 'Discounts', icon: Tag },
     { href: `${basePath}/settings/security`, label: 'Security', icon: Shield },
+    { href: `${basePath}/affiliates`, label: 'Affiliates', icon: Gift },
   ]
 
   return (
@@ -51,7 +83,7 @@ export function AdminSidebar({ basePath = '/accessadmin' }: AdminSidebarProps) {
         <p className="text-xs text-gray-400">Admin Panel</p>
       </div>
       <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-        {links.map(({ href, label, icon: Icon }) => (
+        {links.map(({ href, label, icon: Icon, badge }) => (
           <Link
             key={href}
             href={href}
@@ -62,7 +94,12 @@ export function AdminSidebar({ basePath = '/accessadmin' }: AdminSidebarProps) {
             }`}
           >
             <Icon className="w-5 h-5" />
-            <span className="text-sm font-medium">{label}</span>
+            <span className="text-sm font-medium flex-1">{label}</span>
+            {badge != null && badge > 0 && (
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                {badge > 9 ? '9+' : badge}
+              </span>
+            )}
           </Link>
         ))}
       </nav>
