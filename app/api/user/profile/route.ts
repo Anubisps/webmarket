@@ -5,7 +5,6 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 
 export async function PUT(request: Request) {
   try {
-    // ✅ Pass authOptions explicitly
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -21,7 +20,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
     }
 
-    // Check if email already taken by another user
+    // Check if email is already taken by someone else
     const existing = await prisma.user.findFirst({
       where: {
         email,
@@ -33,14 +32,20 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 })
     }
 
+    // Update the database record
     await prisma.user.update({
       where: { id: session.user.id },
       data: { email }
     })
 
-    return NextResponse.json({ success: true })
+    // ✅ Return a clean confirmation to the client application
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Email updated successfully' 
+    }, { status: 200 })
+
   } catch (error) {
-    console.error('Profile update error:', error)
+    console.error('Profile update API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

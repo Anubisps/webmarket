@@ -12,6 +12,7 @@
     "@auth/prisma-adapter": "^2.11.2",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
+    "crypto": "^1.0.1",
     "csurf": "^1.11.0",
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",

@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
-import { ShoppingCart, Sparkles, Box, ArrowRight, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { ShoppingCart, Sparkles, Box, ArrowRight, Clock, CheckCircle, XCircle, AlertCircle, Eye, Filter } from 'lucide-react'
 
 export default async function AdminOrders() {
   const session = await getServerSession()
@@ -32,8 +32,6 @@ export default async function AdminOrders() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
-      
-      {/* ===== HEADER ===== */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
         <div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-4">
@@ -43,11 +41,10 @@ export default async function AdminOrders() {
           <h1 className="text-3xl md:text-4xl font-extrabold">
             All <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Orders</span>
           </h1>
-          <p className="text-gray-400 text-lg">Manage customer orders.</p>
+          <p className="text-gray-400 text-lg">{orders.length} total order(s)</p>
         </div>
       </div>
 
-      {/* ===== ORDERS TABLE ===== */}
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -105,7 +102,7 @@ export default async function AdminOrders() {
                         href={`/accessadmin/orders/${order.id}`}
                         className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-sm"
                       >
-                        Manage <ArrowRight className="w-3 h-3" />
+                        <Eye className="w-3 h-3" /> Manage
                       </Link>
                     </td>
                   </tr>

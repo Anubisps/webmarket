@@ -1,46 +1,66 @@
 'use client'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Header } from '@/components/layout/Header' // ✅ Named import
-import { Footer } from '@/components/layout/Footer' // ✅ Named import
+import { Header } from '@/components/layout/Header'
+import { Footer } from '@/components/layout/Footer'
 import { LiveChatWidget } from '@/components/chat/LiveChatWidget'
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [isRedirecting, setIsRedirecting] = useState(false)
+  const redirectExecuted = useRef(false)
+  const lastCheckedPath = useRef('')
 
-  // ✅ Prevent redirect loops by checking if we're already on login or API routes
   useEffect(() => {
-    if (status === 'loading') return // Wait for session to load
-    
-    const isLoginPage = pathname === '/login'
-    const isRegisterPage = pathname === '/register'
-    const isApiRoute = pathname.startsWith('/api')
-    const isAdminRoute = pathname.startsWith('/accessadmin')
-    
-    // ✅ Don't redirect if we're already on login/register or API routes
-    if (isLoginPage || isRegisterPage || isApiRoute) return
+    // 1. Skip completely if NextAuth is resolving or updating session tokens
+    if (status === 'loading') return
 
-    if (status === 'unauthenticated' && !isRedirecting) {
-      setIsRedirecting(true)
+    // 2. Define public routes that never require a login barrier
+    const publicPages = [
+      '/',
+      '/products',
+      '/about',
+      '/faq',
+      '/contact',
+      '/login',
+      '/register'
+    ]
+
+    const isPublicPage = publicPages.some(page => 
+      pathname === page || pathname.startsWith(page + '/')
+    )
+
+    const isApiRoute = pathname.startsWith('/api')
+    const isAuthRoute = pathname.startsWith('/api/auth')
+
+    // If it's a public area or backend endpoint, reset tracking flags and stop
+    if (isPublicPage || isApiRoute || isAuthRoute) {
+      redirectExecuted.current = false
+      return
+    }
+
+    // 3. Break out early if authenticated to prevent loops
+    if (status === 'authenticated') {
+      redirectExecuted.current = false
+      return
+    }
+
+    // 4. Prevent duplicate trigger cycles on the exact same unauthenticated route
+    if (status === 'unauthenticated' && !redirectExecuted.current) {
+      redirectExecuted.current = true
       router.push('/login')
     }
-
-    if (status === 'authenticated' && isRedirecting) {
-      setIsRedirecting(false)
-    }
-  }, [status, pathname, router, isRedirecting])
+  }, [status, pathname]) // 👈 CRITICAL: Removed 'router' from dependencies to halt the request spam!
 
   return (
     <>
       <LiveChatWidget />
       <Header />
-      <main className="min-h-screen">
-        {children}
+      <main className="min-h-screen flex flex-col">
+        <div className="flex-grow">{children}</div>
       </main>
       <Footer />
     </>

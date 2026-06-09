@@ -56,7 +56,7 @@ export default function CheckoutUI({ productId, productName, price, methods, use
     if (csrfCookie) {
       setCsrfToken(csrfCookie.split('=')[1])
     } else {
-      console.warn('⚠️ CSRF token not found in cookies')
+      console.warn('⚠️ Connection Unavailable')
     }
   }, [mounted])
 
@@ -144,7 +144,7 @@ export default function CheckoutUI({ productId, productName, price, methods, use
       return
     }
     if (!ign.trim()) {
-      setError('Please enter your In-Game Name / ID')
+      setError('Please enter your In-Game ID')
       return
     }
     if (!contactEmail.trim()) {
@@ -152,7 +152,7 @@ export default function CheckoutUI({ productId, productName, price, methods, use
       return
     }
     if (!csrfToken) {
-      setError('CSRF token missing. Please refresh the page.')
+      setError('CSRF missing please contact support.')
       return
     }
     const method = methods.find(m => m.id === selectedMethod)

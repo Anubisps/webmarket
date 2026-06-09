@@ -1,19 +1,15 @@
 import Link from 'next/link'
-import { ArrowRight, Shield, Zap, Clock, Sparkles, Globe, Box, Star, Users } from 'lucide-react'
+import { ArrowRight, Shield, Zap, Clock, Sparkles, Box, Star, Users } from 'lucide-react'
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white selection:bg-purple-500 selection:text-white py-20">
-      
-      {/* ===== BACKGROUND AMBIENCE ===== */}
       <div className="fixed inset-0 z-0">
         <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-purple-600/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-pink-600/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="container mx-auto px-4 max-w-4xl relative z-10">
-        
-        {/* ===== HERO ===== */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-4">
             <Sparkles className="w-4 h-4 text-purple-400" />
@@ -27,7 +23,6 @@ export default function AboutPage() {
           </p>
         </div>
 
-        {/* ===== MISSION CARD ===== */}
         <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 md:p-10 mb-8">
           <div className="flex items-center gap-3 mb-4">
             <Box className="w-6 h-6 text-purple-400" />
@@ -40,7 +35,6 @@ export default function AboutPage() {
           </p>
         </div>
 
-        {/* ===== STATS GRID ===== */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 text-center hover:border-purple-500/30 transition-colors">
             <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
@@ -65,15 +59,13 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* ===== CTA ===== */}
         <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 backdrop-blur-lg border border-white/10 rounded-3xl p-8 text-center">
           <h2 className="text-2xl font-bold mb-2">Ready to experience the difference?</h2>
           <p className="text-gray-400 mb-4">Join thousands of gamers who trust WindVault Market.</p>
-          <Link href="/products" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_40px_rgba(168,85,247,0.5)] hover:scale-105 transition-all">
+          <Link href="/products" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:scale-105 transition-all">
             Browse Products <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
-
       </div>
     </div>
   )

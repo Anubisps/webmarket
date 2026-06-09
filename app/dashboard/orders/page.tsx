@@ -41,26 +41,20 @@ export default async function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white selection:bg-purple-500 selection:text-white py-12">
+    <div className="min-h-screen bg-[#0a0a0f] text-white py-12">
       <div className="container mx-auto px-4 max-w-6xl relative z-10">
-        
-        {/* ===== BACKGROUND AMBIENCE ===== */}
         <div className="fixed inset-0 z-0">
           <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-emerald-600/10 rounded-full blur-3xl"></div>
           <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-teal-600/10 rounded-full blur-3xl"></div>
         </div>
 
-        {/* ===== HEADER ===== */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-2">
-              My <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Orders</span>
-            </h1>
-            <p className="text-gray-400 text-lg">Track and manage your purchases.</p>
+            <h1 className="text-3xl font-bold mb-2">My Orders</h1>
+            <p className="text-gray-400">Track and manage your purchases.</p>
           </div>
         </div>
 
-        {/* ===== ORDERS LIST ===== */}
         {user.orders.length === 0 ? (
           <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-16 text-center">
             <Box className="w-20 h-20 text-gray-500 mx-auto mb-4" />
@@ -123,7 +117,6 @@ export default async function OrdersPage() {
             })}
           </div>
         )}
-
       </div>
     </div>
   )
