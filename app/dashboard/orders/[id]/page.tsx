@@ -54,6 +54,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const StatusIcon = statusConfig[order.status as keyof typeof statusConfig]?.icon || Clock
   const PaymentIcon = paymentStatusConfig[order.paymentStatus as keyof typeof paymentStatusConfig]?.icon || Clock
 
+  // ✅ Fix: Use API endpoint for banner image
+  const bannerSrc = order.bannerImage ? `/api/images/products/${order.bannerImage.split('/').pop()}` : null
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white py-12">
       <div className="container mx-auto px-4 max-w-4xl relative z-10">
@@ -68,10 +71,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         </Link>
 
         <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.4)]">
-          {/* ✅ BANNER IMAGE – Displayed at the top of the order card */}
-          {order.bannerImage && (
+          {/* ✅ Banner Image – Now uses the API endpoint */}
+          {bannerSrc && (
             <div className="relative w-full h-48 overflow-hidden">
-              <img src={order.bannerImage} alt="Order Banner" className="w-full h-full object-cover" />
+              <img src={bannerSrc} alt="Order Banner" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                 <div className="flex items-center gap-2 text-yellow-400">
                   <Star className="w-12 h-12 fill-current" />

@@ -2,14 +2,11 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
 import jsPDF from 'jspdf'
-import 'jspdf-autotable'
 
-// Type declaration for autoTable (optional, but helps with TypeScript)
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => void;
-    lastAutoTable: { finalY: number };
-  }
+// Dynamically import autotable to ensure it's loaded
+async function getPdfWithAutoTable() {
+  const { default: autoTable } = await import('jspdf-autotable')
+  return autoTable
 }
 
 export async function GET(
@@ -51,31 +48,67 @@ export async function GET(
     }
 
     const doc = new jsPDF()
-    doc.text('WindVault Market - Invoice', 20, 20)
-    doc.text(`Order #${order.id.slice(0,8)}`, 20, 30)
-    doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`, 20, 40)
-    doc.text(`Customer: ${order.user.username} (${order.user.email})`, 20, 50)
+    const autoTable = await getPdfWithAutoTable()
 
+    // ✅ Header
+    doc.setFillColor(60, 30, 80) // Dark purple
+    doc.rect(0, 0, 210, 40, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(24)
+    doc.text('WindVault Market', 20, 25)
+    doc.setFontSize(12)
+    doc.text('Invoice', 20, 35)
+
+    // ✅ Order details
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(10)
+    doc.text(`Order #${order.id.slice(0,8)}`, 150, 50)
+    doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`, 150, 56)
+    doc.text(`Customer: ${order.user.username} (${order.user.email})`, 150, 62)
+
+    // ✅ Items table using dynamic autoTable
     const tableData = order.items.map((item: any) => [
       item.product.name,
       item.quantity,
-      item.price.toFixed(2),
-      (item.quantity * item.price).toFixed(2)
+      `$${item.price.toFixed(2)}`,
+      `$${(item.quantity * item.price).toFixed(2)}`
     ])
 
-    // Use (doc as any) to bypass TypeScript checking for autoTable
-    ;(doc as any).autoTable({
+    autoTable(doc, {
       head: [['Product', 'Qty', 'Price', 'Total']],
       body: tableData,
-      startY: 60
+      startY: 70,
+      headStyles: {
+        fillColor: [100, 50, 150],
+        textColor: [255, 255, 255]
+      },
+      columnStyles: {
+        0: { cellWidth: 80 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 40 },
+        3: { cellWidth: 40 }
+      }
     })
 
-    const finalY = (doc as any).lastAutoTable.finalY + 10
-    doc.text(`Subtotal: $${order.total.toFixed(2)}`, 20, finalY)
+    const finalY = (doc as any).lastAutoTable?.finalY || 150
+
+    // ✅ Summary
+    doc.setFontSize(12)
+    doc.text(`Subtotal: $${order.total.toFixed(2)}`, 150, finalY + 10)
     if (order.discountAmount) {
-      doc.text(`Discount: -$${order.discountAmount.toFixed(2)}`, 20, finalY + 10)
-      doc.text(`Final Total: $${(order.total - order.discountAmount).toFixed(2)}`, 20, finalY + 20)
+      doc.text(`Discount: -$${order.discountAmount.toFixed(2)}`, 150, finalY + 18)
+      doc.text(`Total: $${(order.total - order.discountAmount).toFixed(2)}`, 150, finalY + 26)
+    } else {
+      doc.text(`Total: $${order.total.toFixed(2)}`, 150, finalY + 18)
     }
+
+    // ✅ Footer
+    doc.setFillColor(240, 240, 240)
+    doc.rect(0, 280, 210, 20, 'F')
+    doc.setTextColor(100, 100, 100)
+    doc.setFontSize(8)
+    doc.text('WindVault Market - Premium Gaming Marketplace', 20, 290)
+    doc.text('Thank you for your purchase!', 20, 296)
 
     const pdfBuffer = Buffer.from(doc.output('arraybuffer'))
     return new NextResponse(pdfBuffer, {
