@@ -113,31 +113,42 @@ export default function ManageUserPage() {
   }
 
   const handleEditProfile = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setEditLoading(true)
-    setError('')
-    setSuccess('')
-    try {
-      const res = await fetch(`/api/admin/users/${id}/edit`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm)
-      })
-      if (res.ok) {
-        const updated = await res.json()
-        setUser(updated)
-        setEditMode(false)
-        setSuccess('Profile updated successfully')
-      } else {
-        const data = await res.json()
-        setError(data.error || 'Failed to update profile')
-      }
-    } catch (err) {
-      setError('Network error – please try again')
-    } finally {
-      setEditLoading(false)
+  e.preventDefault()
+  setEditLoading(true)
+  setError('')
+  setSuccess('')
+
+  const csrfToken = document.cookie
+    .split(';')
+    .find(c => c.trim().startsWith('csrf_token='))
+    ?.split('=')[1]
+
+  try {
+    const res = await fetch(`/api/admin/users/${id}/edit`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-csrf-token': csrfToken || ''
+      },
+      body: JSON.stringify(editForm)
+    })
+
+    if (res.ok) {
+      // ✅ Redirect to the users list – no loop
+      toast.success('User updated successfully')
+      setTimeout(() => {
+        router.push('/accessadmin/users')
+      }, 500)
+    } else {
+      const data = await res.json()
+      setError(data.error || 'Failed to update user')
     }
+  } catch (err) {
+    setError('Network error – please try again')
+  } finally {
+    setEditLoading(false)
   }
+}
 
   if (loading) return <div className="p-8 text-center text-gray-400">Loading user...</div>
   if (error) return (

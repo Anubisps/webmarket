@@ -25,6 +25,9 @@ model User {
   username      String    @unique
   email         String    @unique
   password      String
+  pendingEmail    String?
+  emailVerificationToken String?
+  emailVerificationExpires DateTime?
   isVerified    Boolean   @default(false)
   twoFactorSecret String?
   role          String    @default("user")

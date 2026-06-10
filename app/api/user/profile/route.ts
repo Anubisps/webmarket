@@ -20,7 +20,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
     }
 
-    // Check if email is already taken by someone else
+    // Check if email already taken by another user
     const existing = await prisma.user.findFirst({
       where: {
         email,
@@ -32,20 +32,16 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 })
     }
 
-    // Update the database record
+    // Update the email in the database
     await prisma.user.update({
       where: { id: session.user.id },
       data: { email }
     })
 
-    // ✅ Return a clean confirmation to the client application
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Email updated successfully' 
-    }, { status: 200 })
-
+    // ✅ Return the new email so the client can pass it to update()
+    return NextResponse.json({ success: true, email })
   } catch (error) {
-    console.error('Profile update API error:', error)
+    console.error('Profile update error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

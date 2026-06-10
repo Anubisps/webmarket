@@ -1,86 +1,87 @@
-import { AuthOptions } from 'next-auth'
+import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
+import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 
-export const authOptions: AuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  pages: {
-    signIn: '/login',
-    error: '/login',
-  },
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        username: { label: "Username", type: "text" },
-        password: { label: "Password", type: "password" }
+        username: { label: 'Username or Email', type: 'text' },
+        password: { label: 'Password', type: 'password' },
+        twoFactorToken: { label: '2FA Token', type: 'text', optional: true }
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
-          throw new Error('Please enter an email/username and password')
-        }
+        if (!credentials?.username || !credentials?.password) return null
 
         const user = await prisma.user.findFirst({
           where: {
             OR: [
-              { email: credentials.username },
-              { username: credentials.username }
+              { username: credentials.username },
+              { email: credentials.username }
             ]
           }
         })
 
-        if (!user || !user.password) {
-          throw new Error('No user found with those credentials')
-        }
+        if (!user) return null
 
-        const passwordMatch = await bcrypt.compare(credentials.password, user.password)
-        if (!passwordMatch) {
-          throw new Error('Incorrect password')
-        }
+        const isValid = await bcrypt.compare(credentials.password, user.password)
+        if (!isValid) return null
 
-        if (user.banned) {
-          throw new Error('This account has been suspended')
+        if (user.twoFactorSecret) {
+          const token = credentials.twoFactorToken
+          if (!token) throw new Error('2FA_REQUIRED')
+          const { authenticator } = await import('otplib')
+          const isValid2FA = authenticator.verify({
+            token,
+            secret: user.twoFactorSecret
+          })
+          if (!isValid2FA) throw new Error('Invalid 2FA token')
         }
 
         return {
           id: user.id,
-          username: user.username,
           email: user.email,
+          username: user.username,
           role: user.role,
+          createdAt: user.createdAt
         }
       }
     })
   ],
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      // Initial user login capture
-      if (user) {
-        token.id = user.id
-        token.username = user.username
-        token.email = user.email
-        token.role = user.role
-      }
-
-      // This catches your client update call and silently updates the cookie!
-      if (trigger === "update" && session?.email) {
+      // ✅ CRITICAL FIX: This catches the client update() call
+      if (trigger === 'update' && session?.email) {
         token.email = session.email
       }
-
+      if (user) {
+        token.role = user.role
+        token.id = user.id
+        token.createdAt = user.createdAt
+      }
       return token
     },
     async session({ session, token }) {
-      if (session.user && token) {
-        session.user.id = token.id as string
-        session.user.username = token.username as string
-        session.user.email = token.email as string
-        session.user.role = token.role as string
+      if (session.user) {
+        session.user.role = token.role
+        session.user.id = token.id
+        session.user.createdAt = token.createdAt
+        if (token.email) {
+          session.user.email = token.email
+        }
       }
       return session
     }
-  }
+  },
+  pages: {
+    signIn: '/login',
+  },
+  session: {
+    strategy: 'jwt'
+  },
+  secret: process.env.NEXTAUTH_SECRET
 }

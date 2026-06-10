@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
+import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 
 export async function PUT(
   request: Request,
@@ -8,47 +9,29 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const session = await getServerSession()
-    if (!session?.user?.email) {
+    const session = await getServerSession(authOptions)
+    
+    // ✅ Type-safe role check
+    const userRole = session?.user?.role
+    if (!session?.user?.id || !userRole || !['admin', 'manager'].includes(userRole)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const admin = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
+    const { email } = await request.json()
 
-    if (!admin || !['admin', 'manager'].includes(admin.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!email || !email.includes('@')) {
+      return NextResponse.json({ error: 'Valid email required' }, { status: 400 })
     }
 
-    const { username, email } = await request.json()
-
-    // Check if username or email already taken (by another user)
-    const existing = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { username, NOT: { id } },
-          { email, NOT: { id } }
-        ]
-      }
-    })
-
-    if (existing) {
-      if (existing.username === username) {
-        return NextResponse.json({ error: 'Username already taken' }, { status: 400 })
-      } else {
-        return NextResponse.json({ error: 'Email already registered' }, { status: 400 })
-      }
-    }
-
-    const user = await prisma.user.update({
+    // ✅ Just update the database – no session changes for the admin
+    await prisma.user.update({
       where: { id },
-      data: { username, email }
+      data: { email }
     })
 
-    return NextResponse.json(user)
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Edit user error:', error)
+    console.error('Admin user update error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
