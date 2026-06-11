@@ -1,28 +1,41 @@
 import { prisma } from '@/lib/db'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ShoppingCart, Shield, Zap, Clock, Star, Truck, CheckCircle, AlertCircle, Calendar } from 'lucide-react'
+import { 
+  ArrowLeft, 
+  ShoppingCart, 
+  Shield, 
+  Zap, 
+  Clock, 
+  Star, 
+  AlertCircle, 
+  CheckCircle, 
+  Truck, 
+  Calendar 
+} from 'lucide-react'
 import Link from 'next/link'
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const product = await prisma.product.findUnique({
-    where: { slug }
+    where: { slug },
+    include: {
+      category: {
+        select: { name: true }
+      }
+    }
   })
 
   if (!product) {
     notFound()
   }
 
-  // ✅ Use API endpoint for images to avoid 403 errors
   const firstImage = product.images && product.images.length > 0 ? product.images[0] : null
   const imageSrc = firstImage ? `/api/images/products/${firstImage.split('/').pop()}` : null
   const bannerSrc = product.bannerImage ? `/api/images/products/${product.bannerImage.split('/').pop()}` : null
 
-  // ✅ Additional details (you can edit these later)
   const estimatedDelivery = 'Instant (after payment)'
   const stockStatus = product.stock > 0 ? 'In Stock' : 'Out of Stock'
   const availabilityEnd = product.isLimited ? 'Limited time offer' : 'Always available'
-  const minPurchase = 1
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white py-8 md:py-12">
@@ -38,7 +51,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </Link>
 
         <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.4)]">
-          {/* ✅ Hero Banner (only if available) */}
+          {/* Banner Image */}
           {bannerSrc && (
             <div className="relative w-full h-48 md:h-56 overflow-hidden">
               <img src={bannerSrc} alt="Banner" className="w-full h-full object-cover" />
@@ -52,7 +65,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           )}
 
           <div className="flex flex-col md:flex-row">
-            {/* ✅ Left Column – Image & Quick Info */}
+            {/* Left Column – Image & Quick Info */}
             <div className="md:w-2/5 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/10">
               <div className="w-full aspect-square max-w-[400px] relative rounded-xl overflow-hidden bg-black/30 border border-white/10">
                 {imageSrc ? (
@@ -69,18 +82,19 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   <Zap className="w-3 h-3" /> Instant
                 </span>
                 <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-gray-300 flex items-center gap-1">
-                  <Truck className="w-3 h-3" /> Fast Delivery
+                  <Clock className="w-3 h-3" /> Fast Delivery
                 </span>
               </div>
             </div>
 
-            {/* ✅ Right Column – Product Details */}
+            {/* Right Column – Product Details */}
             <div className="md:w-3/5 p-6">
-              {/* Title & Category */}
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
                 <div>
                   <h1 className="text-3xl md:text-4xl font-extrabold">{product.name}</h1>
-                  <p className="text-sm text-gray-400 mt-1">Category: <span className="text-purple-400">{product.category}</span></p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Category: <span className="text-purple-400">{product.category?.name || 'Uncategorized'}</span>
+                  </p>
                 </div>
                 {product.isLimited && (
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 flex items-center gap-1 shrink-0">
@@ -89,10 +103,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 )}
               </div>
 
-              {/* Description */}
               <p className="text-gray-300 text-lg leading-relaxed mb-6">{product.description}</p>
 
-              {/* ✅ Details Grid */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-black/30 rounded-xl p-3 border border-white/5">
                   <p className="text-xs text-gray-400">Price</p>
@@ -132,7 +144,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 </div>
               </div>
 
-              {/* ✅ Buy Now Button */}
               <Link
                 href={`/checkout/${product.id}`}
                 className="block w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-center hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:scale-[1.02] transition-all"

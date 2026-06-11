@@ -1,29 +1,50 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import { Search, Filter, Box, ArrowRight, Sparkles, Star, AlertCircle } from 'lucide-react'
+import { Search, Box, ChevronDown } from 'lucide-react'
+import { ProductCard } from '@/components/products/ProductCard'
 
 export function ProductGrid() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [products, setProducts] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('')
+  const [selectedCategoryId, setSelectedCategoryId] = useState('')
+  const [sort, setSort] = useState('newest')
+  const [searchInput, setSearchInput] = useState('')
+
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     const searchParam = searchParams?.get('search') || ''
-    const filterParam = searchParams?.get('filter') || ''
+    const categoryParam = searchParams?.get('categoryId') || ''
+    const sortParam = searchParams?.get('sort') || 'newest'
     setSearch(searchParam)
-    setFilter(filterParam)
+    setSelectedCategoryId(categoryParam)
+    setSort(sortParam)
+    setSearchInput(searchParam)
   }, [searchParams])
+
+  useEffect(() => {
+    fetch('/api/admin/categories')
+      .then(res => res.json())
+      .then(data => setCategories(data))
+      .catch(err => console.error('Failed to load categories:', err))
+  }, [])
 
   useEffect(() => {
     async function fetchProducts() {
       setLoading(true)
       try {
-        const res = await fetch(`/api/products?search=${encodeURIComponent(search)}&filter=${encodeURIComponent(filter)}`)
+        const params = new URLSearchParams()
+        if (search) params.set('search', search)
+        if (selectedCategoryId && selectedCategoryId !== '') {
+          params.set('categoryId', selectedCategoryId)
+        }
+        if (sort) params.set('sort', sort)
+        const res = await fetch(`/api/products?${params.toString()}`)
         const data = await res.json()
         if (res.ok && Array.isArray(data)) {
           setProducts(data)
@@ -38,117 +59,150 @@ export function ProductGrid() {
       }
     }
     fetchProducts()
-  }, [search, filter])
+  }, [search, selectedCategoryId, sort])
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    if (filter) params.set('filter', filter)
-    router.push(`/products?${params.toString()}`)
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value)
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    debounceTimer.current = setTimeout(() => {
+      const params = new URLSearchParams()
+      if (value) params.set('search', value)
+      if (selectedCategoryId && selectedCategoryId !== '') {
+        params.set('categoryId', selectedCategoryId)
+      }
+      if (sort) params.set('sort', sort)
+      router.push(`/products?${params.toString()}`, { scroll: false })
+    }, 300)
   }
 
-  const toggleFilter = () => {
-    const newFilter = filter ? '' : 'all'
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategoryId(categoryId)
     const params = new URLSearchParams()
     if (search) params.set('search', search)
-    if (newFilter) params.set('filter', newFilter)
-    router.push(`/products?${params.toString()}`)
+    if (categoryId) {
+      params.set('categoryId', categoryId)
+    }
+    if (sort) params.set('sort', sort)
+    router.push(`/products?${params.toString()}`, { scroll: false })
+  }
+
+  const handleSortChange = (newSort: string) => {
+    setSort(newSort)
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    if (selectedCategoryId && selectedCategoryId !== '') {
+      params.set('categoryId', selectedCategoryId)
+    }
+    if (newSort) params.set('sort', newSort)
+    router.push(`/products?${params.toString()}`, { scroll: false })
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-gray-400 text-sm">Loading products...</p>
+          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading products...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white selection:bg-purple-500 selection:text-white py-6">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
-          <h1 className="text-2xl md:text-3xl font-extrabold">
-            <span className="bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">
-              Products
-            </span>
+    <div className="min-h-screen bg-[#0a0a0f] text-white selection:bg-purple-500 selection:text-white py-8">
+      <div className="container mx-auto px-4 max-w-6xl">
+        <div className="mb-6">
+          <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent mb-3">
+            All Products
           </h1>
-          <div className="flex gap-2 w-full md:w-auto">
-            <form onSubmit={handleSearch} className="relative flex-1 md:w-52">
+
+          <div className="flex flex-col gap-3">
+            <div className="relative w-full">
               <input
                 type="text"
-                name="search"
-                defaultValue={search || ''}
-                placeholder="Search..."
-                className="w-full pl-7 pr-3 py-1.5 rounded-md bg-black/30 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all"
+                placeholder="Search products..."
+                value={searchInput}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
               />
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
-            </form>
-            <button
-              onClick={toggleFilter}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                filter === 'all' 
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-500/20'
-                  : 'bg-white/10 hover:bg-white/20 text-gray-300'
-              }`}
-            >
-              <Filter className="w-3.5 h-3.5 inline mr-1" />
-              {filter === 'all' ? 'Clear' : 'Filter'}
-            </button>
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2">
+              <button
+                onClick={() => handleCategoryChange('')}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+                  !selectedCategoryId
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-500/20'
+                    : 'bg-white/10 hover:bg-white/20 text-gray-300'
+                }`}
+              >
+                All
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryChange(cat.id)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+                    selectedCategoryId === cat.id
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-500/20'
+                      : 'bg-white/10 hover:bg-white/20 text-gray-300'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+
+              <div className="ml-auto flex items-center gap-2">
+                <select
+                  value={sort}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                  className="appearance-none bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-sm text-gray-300 focus:outline-none focus:border-purple-500/50 cursor-pointer pr-8"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="price_low">Price: Low → High</option>
+                  <option value="price_high">Price: High → Low</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {products.length === 0 ? (
-            <div className="col-span-full text-center py-10 bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl">
-              <Box className="w-10 h-10 text-gray-500 mx-auto mb-2" />
-              <p className="text-gray-400 text-sm">No products found.</p>
-            </div>
-          ) : (
-            products.map((product) => {
+        <p className="text-sm text-gray-400 mb-4">
+          Showing {products.length} product{products.length !== 1 ? 's' : ''}
+        </p>
+
+        {products.length === 0 ? (
+          <div className="text-center py-20 bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-12">
+            <Box className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold mb-2">No products found</h3>
+            <p className="text-gray-400">Check back later for new arrivals.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+            {products.map((product) => {
               const firstImage = product.images && product.images.length > 0 ? product.images[0] : null
               const imageSrc = firstImage ? `/api/images/products/${firstImage.split('/').pop()}` : null
-              const isOutOfStock = product.stock <= 0
               return (
-                <Link
+                <ProductCard
                   key={product.id}
-                  href={`/products/${product.slug}`}
-                  className="group bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-purple-500/50 transition-all duration-200"
-                >
-                  <div className="h-28 bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-500 relative">
-                    {imageSrc ? (
-                      <img src={imageSrc} alt={product.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-500" />
-                    )}
-                    <div className="absolute inset-0 bg-black/20"></div>
-                    <div className="absolute bottom-1.5 left-1.5">
-                      <span className="text-white text-[10px] font-medium px-1.5 py-0.5 bg-black/60 backdrop-blur-sm rounded-full">
-                        {product.category}
-                      </span>
-                    </div>
-                    {isOutOfStock && (
-                      <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-red-500/80 backdrop-blur-sm rounded-full text-white text-[10px] font-bold">
-                        Out
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-2.5">
-                    <h3 className="text-sm font-medium mb-0.5 group-hover:text-purple-400 transition-colors truncate">
-                      {product.name}
-                    </h3>
-                    <p className="text-sm font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                      ${product.price.toFixed(2)}
-                    </p>
-                  </div>
-                </Link>
+                  product={{
+                    id: product.id,
+                    name: product.name,
+                    slug: product.slug,
+                    price: product.price,
+                    stock: product.stock,
+                    images: product.images || [],
+                    category: product.category ? { name: product.category.name } : null
+                  }}
+                  imageSrc={imageSrc}
+                  wishlisted={product.wishlisted}
+                />
               )
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

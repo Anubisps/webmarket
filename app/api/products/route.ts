@@ -1,56 +1,51 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
-    const filter = searchParams.get('filter') || ''
+    const categoryId = searchParams.get('categoryId') || ''
+    const sort = searchParams.get('sort') || 'newest'
 
-    // Explicitly select only fields that exist in your schema
+    const session = await getServerSession(authOptions)
+    const userId = session?.user?.id
+
+    // Build where clause – ✅ fixed to handle empty categoryId
+    const where: any = { isActive: true }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ]
+    }
+    if (categoryId && categoryId !== '') {
+      where.categoryId = categoryId
+    }
+
+    // Build orderBy
+    let orderBy: any = { createdAt: 'desc' }
+    if (sort === 'price_low') orderBy = { price: 'asc' }
+    if (sort === 'price_high') orderBy = { price: 'desc' }
+
     const products = await prisma.product.findMany({
-      where: {
-        isActive: true,
-        AND: search ? [
-          {
-            OR: [
-              { name: { contains: search, mode: 'insensitive' } },
-              { category: { contains: search, mode: 'insensitive' } },
-            ],
-          },
-        ] : {},
-      },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        price: true,
-        stock: true,
-        category: true,
-        images: true,
-        bannerImage: true,
-        isActive: true,
-        isLimited: true,
-        discount: true,
-        startDate: true,
-        endDate: true,
-        variants: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
+      where,
+      orderBy,
+      include: {
+        wishlists: {
+          where: { userId }
+        },
+        category: {
+          select: { id: true, name: true, slug: true }
+        }
+      }
     })
 
     return NextResponse.json(products)
   } catch (error) {
-    // Log the real error to your VPS terminal
-    console.error('❌ Products API Crash:', error)
-
-    // Return a clean error response so the frontend doesn't crash
-    return NextResponse.json(
-      { error: 'Failed to load products. Check VPS logs.' },
-      { status: 500 }
-    )
+    console.error('Products API error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

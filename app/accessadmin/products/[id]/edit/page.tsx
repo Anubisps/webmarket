@@ -17,7 +17,7 @@ export default function EditProductPage() {
     description: '',
     price: '',
     stock: '',
-    category: '',
+    categoryId: '',
     isActive: true,
     isLimited: false,
     discount: '',
@@ -29,6 +29,14 @@ export default function EditProductPage() {
   const [productImage, setProductImage] = useState<string>('')
   const [uploading, setUploading] = useState(false)
   const [bannerUploading, setBannerUploading] = useState(false)
+  const [categories, setCategories] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch('/api/admin/categories')
+      .then(res => res.json())
+      .then(data => setCategories(data))
+      .catch(err => console.error('Failed to load categories:', err))
+  }, [])
 
   useEffect(() => {
     fetch(`/api/admin/products/${id}`)
@@ -40,7 +48,7 @@ export default function EditProductPage() {
           description: data.description || '',
           price: data.price.toString(),
           stock: data.stock.toString(),
-          category: data.category,
+          categoryId: data.categoryId || '',
           isActive: data.isActive,
           isLimited: data.isLimited,
           discount: data.discount?.toString() || '',
@@ -299,14 +307,74 @@ export default function EditProductPage() {
               />
             </div>
           </div>
+
+          {/* Category Dropdown */}
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-400">Category</label>
-            <input
-              type="text"
+            <select
               required
               className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-              value={form.category}
-              onChange={e => setForm({ ...form, category: e.target.value })}
+              value={form.categoryId}
+              onChange={e => setForm({ ...form, categoryId: e.target.value })}
+            >
+              <option value="">Select a category</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 text-sm text-gray-400">
+              <input
+                type="checkbox"
+                checked={form.isActive}
+                onChange={e => setForm({ ...form, isActive: e.target.checked })}
+                className="w-4 h-4 accent-purple-500"
+              />
+              Active
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-400">
+              <input
+                type="checkbox"
+                checked={form.isLimited}
+                onChange={e => setForm({ ...form, isLimited: e.target.checked })}
+                className="w-4 h-4 accent-purple-500"
+              />
+              Limited Time
+            </label>
+          </div>
+          {form.isLimited && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-400">Start Date</label>
+                <input
+                  type="datetime-local"
+                  className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  value={form.startDate}
+                  onChange={e => setForm({ ...form, startDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-400">End Date</label>
+                <input
+                  type="datetime-local"
+                  className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  value={form.endDate}
+                  onChange={e => setForm({ ...form, endDate: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-400">Discount (%)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+              value={form.discount}
+              onChange={e => setForm({ ...form, discount: e.target.value })}
             />
           </div>
           <button

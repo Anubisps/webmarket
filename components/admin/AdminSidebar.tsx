@@ -18,7 +18,8 @@ import {
   Home,
   Mail,
   MessageCircle,
-  Gift
+  Gift,
+  Folder
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -44,16 +45,7 @@ export function AdminSidebar({ basePath = '/accessadmin' }: AdminSidebarProps) {
 
   useEffect(() => {
     fetchUnreadCount()
-    const handleContactUpdate = () => fetchUnreadCount()
-    window.addEventListener('contact-update', handleContactUpdate)
-    return () => window.removeEventListener('contact-update', handleContactUpdate)
   }, [])
-
-  useEffect(() => {
-    if (pathname.includes('/accessadmin/contact')) {
-      fetchUnreadCount()
-    }
-  }, [pathname])
 
   const links = [
     { href: `${basePath}`, label: 'Dashboard', icon: LayoutDashboard },
@@ -62,13 +54,14 @@ export function AdminSidebar({ basePath = '/accessadmin' }: AdminSidebarProps) {
     { href: `${basePath}/users`, label: 'Users', icon: Users },
     { href: `${basePath}/tickets`, label: 'Tickets', icon: Ticket },
     { href: `${basePath}/contact`, label: 'Contact', icon: Mail, badge: unreadCount },
-    { href: `${basePath}/livechat`, label: 'Live Chat', icon: MessageCircle, badge: null },
+    { href: `${basePath}/livechat`, label: 'Live Chat', icon: MessageCircle },
     { href: `${basePath}/analytics`, label: 'Analytics', icon: BarChart3 },
+    { href: `${basePath}/categories`, label: 'Categories', icon: Folder },
+    { href: `${basePath}/affiliates`, label: 'Affiliates', icon: Gift },
     { href: `${basePath}/settings/general`, label: 'General', icon: Globe },
     { href: `${basePath}/settings/payments`, label: 'Payments', icon: CreditCard },
     { href: `${basePath}/settings/discounts`, label: 'Discounts', icon: Tag },
     { href: `${basePath}/settings/security`, label: 'Security', icon: Shield },
-    { href: `${basePath}/affiliates`, label: 'Affiliates', icon: Gift },
   ]
 
   return (
@@ -88,14 +81,12 @@ export function AdminSidebar({ basePath = '/accessadmin' }: AdminSidebarProps) {
             key={href}
             href={href}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-              pathname === href || pathname.startsWith(href + '/')
-                ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
+              pathname === href ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
             <Icon className="w-5 h-5" />
             <span className="text-sm font-medium flex-1">{label}</span>
-            {badge != null && badge > 0 && (
+            {badge !== undefined && badge > 0 && (
               <span className="flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold">
                 {badge > 9 ? '9+' : badge}
               </span>

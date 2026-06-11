@@ -52,6 +52,15 @@ model User {
   referredUsers User[]     @relation("UserReferral")
 }
 
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+}
+
 model Product {
   id          String    @id @default(cuid())
   name        String
@@ -59,7 +68,6 @@ model Product {
   description String?
   price       Float
   stock       Int
-  category    String
   images      String[]  @default([])
   bannerImage String?
   isActive    Boolean   @default(true)
@@ -70,6 +78,10 @@ model Product {
   variants    Json?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  // ✅ New category relation
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   reviews     Review[]
   orderItems  OrderItem[]
@@ -185,13 +197,15 @@ model Review {
 }
 
 model WishlistItem {
-  id          String  @id @default(cuid())
-  userId      String
-  productId   String
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
 
-  user        User    @relation(fields: [userId], references: [id])
-  product     Product @relation(fields: [productId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
 }
 
 model Notification {

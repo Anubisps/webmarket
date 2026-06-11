@@ -17,13 +17,16 @@ export default async function AdminProducts() {
   }
 
   const products = await prisma.product.findMany({
+    include: {
+      category: {
+        select: { name: true }
+      }
+    },
     orderBy: { createdAt: 'desc' }
   })
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
-      
-      {/* ===== HEADER ===== */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
         <div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-4">
@@ -44,7 +47,6 @@ export default async function AdminProducts() {
         </Link>
       </div>
 
-      {/* ===== PRODUCTS TABLE ===== */}
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -72,7 +74,9 @@ export default async function AdminProducts() {
                     <td className="px-6 py-4 font-medium">{product.name}</td>
                     <td className="px-6 py-4 text-emerald-400">{product.price.toFixed(2)} USDC</td>
                     <td className="px-6 py-4">{product.stock}</td>
-                    <td className="px-6 py-4 text-gray-400">{product.category}</td>
+                    <td className="px-6 py-4 text-gray-400">
+                      {product.category?.name || 'Uncategorized'}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         product.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
