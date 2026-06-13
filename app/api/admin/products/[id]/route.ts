@@ -2,6 +2,41 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
 
+// GET – fetch a single product
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession()
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+    if (!user || !['admin', 'manager'].includes(user.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const { id } = await params
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: { category: true }
+    })
+
+    if (!product) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(product)
+  } catch (error) {
+    console.error('GET product error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// PUT – update a product
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -26,7 +61,6 @@ export async function PUT(
       images, variants, bannerImage, availabilityMessage
     } = body
 
-    // Build data object for Prisma
     const updateData: any = {
       name,
       slug,
@@ -56,10 +90,34 @@ export async function PUT(
 
     return NextResponse.json(product)
   } catch (error) {
-    console.error('Product update error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    console.error('PUT product error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// DELETE – remove a product
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession()
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+    if (!user || !['admin', 'manager'].includes(user.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const { id } = await params
+    await prisma.product.delete({ where: { id } })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('DELETE product error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

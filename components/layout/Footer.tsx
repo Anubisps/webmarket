@@ -39,48 +39,22 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Social & Contact */}
+          {/* Social & Contact – links are disabled (no href) */}
           <div>
             <h4 className="font-semibold text-white mb-3">Connect</h4>
             <div className="flex space-x-4 mb-4">
-              <a
-                href="https://github.com/Anubisps/webmarket"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 rounded-full bg-white/10 hover:bg-purple-600/50 transition-colors"
-                aria-label="GitHub"
-              >
+              <span className="p-2 rounded-full bg-white/10 cursor-default opacity-60" aria-label="GitHub (disabled)">
                 <Globe className="w-5 h-5" />
-              </a>
-              <a
-                href="https://twitter.com/windvault"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 rounded-full bg-white/10 hover:bg-purple-600/50 transition-colors"
-                aria-label="Twitter"
-              >
+              </span>
+              <span className="p-2 rounded-full bg-white/10 cursor-default opacity-60" aria-label="Twitter (disabled)">
                 <Share2 className="w-5 h-5" />
-              </a>
-              <a
-                href="/contact"
-                className="p-2 rounded-full bg-white/10 hover:bg-purple-600/50 transition-colors"
-                aria-label="Contact"
-              >
+              </span>
+              <span className="p-2 rounded-full bg-white/10 cursor-default opacity-60" aria-label="Contact (disabled)">
                 <Mail className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="p-2 rounded-full bg-white/10 hover:bg-purple-600/50 transition-colors"
-                aria-label="Live Chat"
-                onClick={(e) => {
-                  e.preventDefault()
-                  // Trigger live chat widget if available
-                  const widget = document.querySelector('.live-chat-widget-trigger')
-                  if (widget) (widget as HTMLElement).click()
-                }}
-              >
+              </span>
+              <span className="p-2 rounded-full bg-white/10 cursor-default opacity-60" aria-label="Live Chat (disabled)">
                 <MessageCircle className="w-5 h-5" />
-              </a>
+              </span>
             </div>
             <p className="text-xs text-gray-500">
               &copy; {new Date().getFullYear()} WindVault Market. <br />
