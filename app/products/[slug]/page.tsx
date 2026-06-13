@@ -35,7 +35,23 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   const estimatedDelivery = 'Instant (after payment)'
   const stockStatus = product.stock > 0 ? 'In Stock' : 'Out of Stock'
-  const availabilityEnd = product.isLimited ? 'Limited time offer' : 'Always available'
+
+  // ✅ Dynamic availability message based on limited time settings
+  const getAvailabilityMessage = () => {
+    if (!product.isLimited) return "Always available"
+    if (!product.startDate && !product.endDate) return "Limited edition"
+    const now = new Date()
+    if (product.startDate && now < new Date(product.startDate)) return "Coming soon"
+    if (!product.endDate) return "Limited time offer"
+    const end = new Date(product.endDate)
+    if (now > end) return "Expired"
+    const diffHours = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60))
+    if (diffHours < 24) return `Available for ${diffHours} more hours`
+    const days = Math.ceil(diffHours / 24)
+    return `Available for ${days} more days`
+  }
+
+  const availabilityMessage = getAvailabilityMessage()
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white py-8 md:py-12">
@@ -56,9 +72,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <div className="relative w-full h-48 md:h-56 overflow-hidden">
               <img src={bannerSrc} alt="Banner" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                {/* ⭐ Rating removed – only visual decoration left */}
                 <div className="flex items-center gap-2 text-yellow-400">
-                  <Star className="w-12 h-12 fill-current" />
-                  <span className="text-4xl font-bold">4.9</span>
+                  {/* No star rating number anymore */}
                 </div>
               </div>
             </div>
@@ -139,7 +155,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   <p className="text-xs text-gray-400">Availability</p>
                   <p className="text-sm flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-yellow-400" />
-                    <span>{availabilityEnd}</span>
+                    <span className={availabilityMessage.includes("Expired") ? "text-red-400" : "text-emerald-400"}>
+                      {availabilityMessage}
+                    </span>
                   </p>
                 </div>
               </div>

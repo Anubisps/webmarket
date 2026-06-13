@@ -4,6 +4,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Sparkles, Package, Save, Box, Edit, Upload, Image as ImageIcon, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { revalidateHomepage } from '@/app/actions/productActions'
 
 export default function EditProductPage() {
   const router = useRouter()
@@ -24,7 +25,9 @@ export default function EditProductPage() {
     startDate: '',
     endDate: '',
     variants: '[]',
-    bannerImage: ''
+    bannerImage: '',
+    availabilityMessage: '',
+    showAvailabilityMessage: false
   })
   const [productImage, setProductImage] = useState<string>('')
   const [uploading, setUploading] = useState(false)
@@ -55,7 +58,9 @@ export default function EditProductPage() {
           startDate: data.startDate ? new Date(data.startDate).toISOString().slice(0,16) : '',
           endDate: data.endDate ? new Date(data.endDate).toISOString().slice(0,16) : '',
           variants: data.variants ? JSON.stringify(data.variants) : '[]',
-          bannerImage: data.bannerImage || ''
+          bannerImage: data.bannerImage || '',
+          availabilityMessage: data.availabilityMessage || '',
+          showAvailabilityMessage: !!data.availabilityMessage
         })
         setProductImage(data.images && data.images.length > 0 ? data.images[0] : '')
       })
@@ -89,11 +94,13 @@ export default function EditProductPage() {
           endDate: form.endDate ? new Date(form.endDate) : null,
           images: productImage ? [productImage] : [],
           variants,
-          bannerImage: form.bannerImage || null
+          bannerImage: form.bannerImage || null,
+          availabilityMessage: form.showAvailabilityMessage ? form.availabilityMessage : null
         })
       })
 
       if (res.ok) {
+        await revalidateHomepage()
         toast.success('✅ Product updated successfully!')
         router.push('/accessadmin/products')
       } else {
@@ -377,6 +384,32 @@ export default function EditProductPage() {
               onChange={e => setForm({ ...form, discount: e.target.value })}
             />
           </div>
+
+          {/* Custom Availability Message Override */}
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 text-sm text-gray-400">
+              <input
+                type="checkbox"
+                checked={form.showAvailabilityMessage}
+                onChange={e => setForm({ ...form, showAvailabilityMessage: e.target.checked })}
+                className="w-4 h-4 accent-purple-500"
+              />
+              Override availability message
+            </label>
+          </div>
+          {form.showAvailabilityMessage && (
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-400">Custom Availability Message</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                value={form.availabilityMessage}
+                onChange={e => setForm({ ...form, availabilityMessage: e.target.value })}
+                placeholder="e.g. Ends in 3 days"
+              />
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
