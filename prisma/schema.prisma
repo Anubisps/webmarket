@@ -37,6 +37,8 @@ model User {
   referralDiscountUsed Boolean @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  resetToken       String?
+  resetTokenExpiry DateTime?
 
   orders        Order[]
   tickets       Ticket[]

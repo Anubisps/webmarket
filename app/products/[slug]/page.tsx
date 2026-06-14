@@ -36,8 +36,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const estimatedDelivery = 'Instant (after payment)'
   const stockStatus = product.stock > 0 ? 'In Stock' : 'Out of Stock'
 
-  // ✅ Dynamic availability message based on limited time settings
+  // Dynamic availability message
   const getAvailabilityMessage = () => {
+    if (product.stock <= 0) return "OUT OF STOCK"
     if (!product.isLimited) return "Always available"
     if (!product.startDate && !product.endDate) return "Limited edition"
     const now = new Date()
@@ -52,6 +53,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   }
 
   const availabilityMessage = getAvailabilityMessage()
+  const isOutOfStock = product.stock <= 0
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white py-8 md:py-12">
@@ -61,7 +63,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-pink-600/10 rounded-full blur-3xl"></div>
         </div>
 
-        <Link href="/products" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors group">
+        {/* Back button - fixed clickability */}
+        <Link 
+          href="/products" 
+          className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors group z-20 relative"
+        >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           <span>Back to Products</span>
         </Link>
@@ -72,16 +78,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <div className="relative w-full h-48 md:h-56 overflow-hidden">
               <img src={bannerSrc} alt="Banner" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                {/* ⭐ Rating removed – only visual decoration left */}
-                <div className="flex items-center gap-2 text-yellow-400">
-                  {/* No star rating number anymore */}
-                </div>
+                {/* No rating number */}
               </div>
             </div>
           )}
 
           <div className="flex flex-col md:flex-row">
-            {/* Left Column – Image & Quick Info */}
+            {/* Left Column – Image */}
             <div className="md:w-2/5 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/10">
               <div className="w-full aspect-square max-w-[400px] relative rounded-xl overflow-hidden bg-black/30 border border-white/10">
                 {imageSrc ? (
@@ -112,9 +115,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                     Category: <span className="text-purple-400">{product.category?.name || 'Uncategorized'}</span>
                   </p>
                 </div>
-                {product.isLimited && (
+                {product.isLimited && !isOutOfStock && (
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 flex items-center gap-1 shrink-0">
                     <AlertCircle className="w-3 h-3" /> Limited Edition
+                  </span>
+                )}
+                {isOutOfStock && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 flex items-center gap-1 shrink-0">
+                    <AlertCircle className="w-3 h-3" /> Out of Stock
                   </span>
                 )}
               </div>
@@ -134,12 +142,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 <div className="bg-black/30 rounded-xl p-3 border border-white/5">
                   <p className="text-xs text-gray-400">Stock Status</p>
                   <p className="text-lg font-medium flex items-center gap-2">
-                    {stockStatus === 'In Stock' ? (
+                    {!isOutOfStock ? (
                       <CheckCircle className="w-4 h-4 text-emerald-400" />
                     ) : (
                       <AlertCircle className="w-4 h-4 text-red-400" />
                     )}
-                    <span className={stockStatus === 'In Stock' ? 'text-emerald-400' : 'text-red-400'}>
+                    <span className={!isOutOfStock ? 'text-emerald-400' : 'text-red-400'}>
                       {stockStatus}
                     </span>
                   </p>
@@ -155,7 +163,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   <p className="text-xs text-gray-400">Availability</p>
                   <p className="text-sm flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-yellow-400" />
-                    <span className={availabilityMessage.includes("Expired") ? "text-red-400" : "text-emerald-400"}>
+                    <span className={availabilityMessage === "OUT OF STOCK" ? "text-red-400 font-bold" : (availabilityMessage.includes("Expired") ? "text-red-400" : "text-emerald-400")}>
                       {availabilityMessage}
                     </span>
                   </p>
@@ -163,11 +171,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </div>
 
               <Link
-                href={`/checkout/${product.id}`}
-                className="block w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-center hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:scale-[1.02] transition-all"
+                href={!isOutOfStock ? `/checkout/${product.id}` : '#'}
+                className={`block w-full py-4 rounded-xl text-white font-bold text-center transition-all ${
+                  !isOutOfStock 
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:scale-[1.02]' 
+                    : 'bg-gray-600 cursor-not-allowed opacity-50'
+                }`}
               >
                 <ShoppingCart className="w-5 h-5 inline mr-2" />
-                Buy Now
+                {isOutOfStock ? 'Out of Stock' : 'Buy Now'}
               </Link>
             </div>
           </div>

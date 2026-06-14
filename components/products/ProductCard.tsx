@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Star } from 'lucide-react'
+import { Star, ArrowRight, Flame, Eye } from 'lucide-react'
 import { WishlistButton } from './WishlistButton'
 
 interface ProductCardProps {
@@ -10,9 +10,7 @@ interface ProductCardProps {
     price: number
     stock: number
     images: string[]
-    category: {
-      name: string
-    } | null
+    category: { name: string } | null
   }
   imageSrc: string | null
   wishlisted: boolean
@@ -22,37 +20,63 @@ export function ProductCard({ product, imageSrc, wishlisted }: ProductCardProps)
   const isOutOfStock = product.stock <= 0
 
   return (
-    <Link
-      href={`/products/${product.slug}`}
-      className="group bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-purple-500/50 hover:shadow-[0_0_40px_rgba(168,85,247,0.15)] transition-all duration-300"
-    >
-      <div className="relative h-32 sm:h-40 bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-500">
-        {imageSrc ? (
-          <img src={imageSrc} alt={product.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-500" />
-        )}
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="absolute bottom-1.5 left-1.5">
-          <span className="text-white text-[10px] font-medium px-1.5 py-0.5 bg-black/60 backdrop-blur-sm rounded-full">
-            {product.category?.name || 'Uncategorized'}
-          </span>
+    <div className="group relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 hover:border-purple-500/50 hover:-translate-y-2 transition-all duration-500">
+      {/* Image Section */}
+      <Link href={`/products/${product.slug}`} className="block relative overflow-hidden">
+        <div className="aspect-square relative">
+          {imageSrc ? (
+            <img
+              src={imageSrc}
+              alt={product.name}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-500 transition-transform duration-700 group-hover:scale-110" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         </div>
-        <WishlistButton productId={product.id} initialWishlisted={wishlisted} />
+        
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1">
+          {product.category?.name && (
+            <span className="px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
+              {product.category.name}
+            </span>
+          )}
+        </div>
+        <div className="absolute top-3 right-3 z-10">
+          <WishlistButton productId={product.id} initialWishlisted={wishlisted} />
+        </div>
         {isOutOfStock && (
-          <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-red-500/80 backdrop-blur-sm rounded-full text-white text-[10px] font-bold">
-            Out
+          <div className="absolute bottom-3 left-3 right-3 bg-red-500/90 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-lg text-center">
+            OUT OF STOCK
           </div>
         )}
+      </Link>
+
+      {/* Content Section */}
+      <div className="p-4">
+        <Link href={`/products/${product.slug}`}>
+          <h3 className="text-base font-bold mb-1 line-clamp-1 group-hover:text-purple-400 transition-colors">
+            {product.name}
+          </h3>
+        </Link>
+        
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex flex-col">
+            <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              ${product.price.toFixed(2)}
+            </span>
+            <span className="text-xs text-gray-500">USDC</span>
+          </div>
+          <Link
+            href={`/products/${product.slug}`}
+            className="flex items-center gap-1 text-sm font-medium text-purple-400 group-hover:gap-2 transition-all"
+          >
+            View <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
       </div>
-      <div className="p-2.5">
-        <h3 className="text-sm font-medium mb-0.5 group-hover:text-purple-400 transition-colors truncate">
-          {product.name}
-        </h3>
-        <p className="text-sm font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-          ${product.price.toFixed(2)}
-        </p>
-      </div>
-    </Link>
+    </div>
   )
 }

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { User, Mail, Lock, Eye, EyeOff, Shield, Bell, Loader2, Upload, X, Camera, Check, AlertCircle, Star } from 'lucide-react'
+import { User, Mail, Lock, Eye, EyeOff, Shield, Bell, Loader2, Upload, X, Camera, Check, AlertCircle, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function ProfileSettingsPage() {
@@ -55,14 +55,12 @@ export default function ProfileSettingsPage() {
     if (session?.user?.email) {
       setEmail(session.user.email)
     }
-    // Load profile photo from localStorage
     const storedPhoto = localStorage.getItem('profile_photo')
     if (storedPhoto) {
       setPhotoUrl(storedPhoto)
     }
   }, [session])
 
-  // Load notification preferences on mount
   useEffect(() => {
     async function loadPreferences() {
       try {
@@ -81,7 +79,6 @@ export default function ProfileSettingsPage() {
     loadPreferences()
   }, [])
 
-  // Password strength checker
   const checkPasswordStrength = (pass: string) => {
     const requirements = {
       length: pass.length >= 6,
@@ -91,7 +88,6 @@ export default function ProfileSettingsPage() {
       special: /[^a-zA-Z0-9]/.test(pass)
     }
     setPasswordRequirements(requirements)
-
     const strength = Object.values(requirements).filter(Boolean).length
     setPasswordStrength(strength)
   }
@@ -110,27 +106,21 @@ export default function ProfileSettingsPage() {
       ?.split('=')[1] || ''
   }
 
-  // Profile photo upload
   const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !isMounted) return
-
     if (file.size > 2 * 1024 * 1024) {
       toast.error('File too large. Please upload an image under 2MB.')
       return
     }
-
     setUploadingPhoto(true)
-
     const formData = new FormData()
     formData.append('file', file)
-
     try {
       const res = await fetch('/api/user/profile/photo', {
         method: 'POST',
         body: formData
       })
-
       if (res.ok) {
         const data = await res.json()
         setPhotoUrl(data.photoUrl)
@@ -158,17 +148,14 @@ export default function ProfileSettingsPage() {
     e.preventDefault()
     if (!isMounted) return
     setEmailStatus({ type: 'loading', message: 'Sending verification code...' })
-
     if (!newEmail || !newEmail.includes('@')) {
       setEmailStatus({ type: 'error', message: 'Please enter a valid email address' })
       return
     }
-
     if (newEmail === email) {
       setEmailStatus({ type: 'error', message: 'New email must be different from current email' })
       return
     }
-
     try {
       const res = await fetch('/api/user/request-email-verification', {
         method: 'POST',
@@ -178,7 +165,6 @@ export default function ProfileSettingsPage() {
         },
         body: JSON.stringify({ newEmail })
       })
-
       if (res.ok) {
         setEmailStatus({ type: 'success', message: 'Verification code sent to your new email!' })
         setShowVerificationInput(true)
@@ -195,12 +181,10 @@ export default function ProfileSettingsPage() {
     e.preventDefault()
     if (!isMounted) return
     setEmailStatus({ type: 'loading', message: 'Verifying code...' })
-
     if (!verificationCode.trim()) {
       setEmailStatus({ type: 'error', message: 'Please enter the verification code' })
       return
     }
-
     try {
       const res = await fetch('/api/user/verify-email', {
         method: 'POST',
@@ -210,13 +194,13 @@ export default function ProfileSettingsPage() {
         },
         body: JSON.stringify({ token: verificationCode.trim() })
       })
-
       if (res.ok) {
         setEmailStatus({ type: 'success', message: '✅ Email verified and updated!' })
         setShowVerificationInput(false)
         setVerificationCode('')
         setNewEmail('')
         await update({ email: newEmail })
+        toast.success('Email updated successfully!')
         setTimeout(() => router.refresh(), 1500)
       } else {
         const data = await res.json()
@@ -231,30 +215,23 @@ export default function ProfileSettingsPage() {
     e.preventDefault()
     if (!isMounted) return
     setPasswordStatus({ type: 'loading', message: 'Updating password...' })
-
     const { currentPassword, newPassword, confirmPassword } = passwordData
-
     if (newPassword !== confirmPassword) {
       setPasswordStatus({ type: 'error', message: 'Passwords do not match' })
       return
     }
-
     if (newPassword.length < 6) {
       setPasswordStatus({ type: 'error', message: 'Password must be at least 6 characters' })
       return
     }
-
     if (newPassword === currentPassword) {
       setPasswordStatus({ type: 'error', message: 'New password must be different from current password' })
       return
     }
-
-    // Check password strength
     if (passwordStrength < 3) {
       setPasswordStatus({ type: 'error', message: 'Password is too weak. Please add uppercase, lowercase, numbers, or special characters.' })
       return
     }
-
     try {
       const res = await fetch('/api/user/password', {
         method: 'PUT',
@@ -264,9 +241,9 @@ export default function ProfileSettingsPage() {
         },
         body: JSON.stringify({ currentPassword, newPassword })
       })
-
       if (res.ok) {
         setPasswordStatus({ type: 'success', message: '✅ Password updated successfully!' })
+        toast.success('Password updated successfully!')
         setPasswordData({
           currentPassword: '',
           newPassword: '',
@@ -300,7 +277,6 @@ export default function ProfileSettingsPage() {
         },
         body: JSON.stringify({ emailNotifications, orderUpdates })
       })
-
       if (res.ok) {
         setNotifStatus({ type: 'success', message: '✅ Notification preferences saved!' })
         toast.success('Notification preferences saved')
@@ -314,7 +290,6 @@ export default function ProfileSettingsPage() {
 
   const firstLetter = session?.user?.username?.charAt(0).toUpperCase() || '?'
 
-  // Password strength bar color
   const getStrengthColor = () => {
     if (passwordStrength <= 1) return 'bg-red-500'
     if (passwordStrength <= 2) return 'bg-orange-500'
@@ -332,18 +307,25 @@ export default function ProfileSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white py-6">
-      <div className="container mx-auto px-4 max-w-5xl">
-        <h1 className="text-2xl font-bold mb-4 flex items-center gap-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-          <User className="w-5 h-5 text-purple-400" />
-          Profile Settings
-        </h1>
+    <div className="min-h-screen bg-[#0a0a0f] text-white py-8">
+      <div className="fixed inset-0 z-0">
+        <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-purple-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-pink-600/10 rounded-full blur-3xl"></div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="container mx-auto px-4 max-w-5xl relative z-10">
+        <div className="flex items-center gap-3 mb-8">
+          <Sparkles className="w-8 h-8 text-purple-400" />
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            Profile Settings
+          </h1>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* LEFT COLUMN – Profile + Notifications */}
-          <div className="md:col-span-1 space-y-3">
-            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-3 flex flex-col items-center relative group hover:bg-white/10 transition-all duration-300">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold mb-2 relative overflow-hidden shadow-lg shadow-purple-500/20">
+          <div className="md:col-span-1 space-y-5">
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 flex flex-col items-center relative group hover:bg-white/10 transition-all duration-300">
+              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-3xl font-bold mb-3 relative overflow-hidden shadow-lg shadow-purple-500/20">
                 {photoUrl ? (
                   <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
@@ -360,56 +342,56 @@ export default function ProfileSettingsPage() {
                 className="hidden"
                 onChange={handleProfilePhotoUpload}
               />
-              <div className="flex gap-2 mt-1">
+              <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingPhoto}
-                  className="px-2 py-1 rounded-lg bg-purple-600 text-white text-xs font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
                 >
                   {uploadingPhoto ? '...' : 'Upload'}
                 </button>
                 {photoUrl && (
                   <button
                     onClick={handleRemovePhoto}
-                    className="px-2 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/30 transition-colors"
+                    className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/30 transition-colors"
                   >
                     Remove
                   </button>
                 )}
               </div>
-              <h2 className="text-sm font-bold">{session?.user?.username || 'User'}</h2>
+              <h2 className="text-lg font-bold mt-2">{session?.user?.username || 'User'}</h2>
               <p className="text-xs text-gray-400">{session?.user?.email}</p>
-              <p className="text-[10px] text-gray-500 capitalize">Role: {session?.user?.role || 'user'}</p>
+              <p className="text-xs text-gray-500 capitalize mt-1">Role: {session?.user?.role || 'user'}</p>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-3">
-              <h2 className="text-sm font-bold mb-2 flex items-center gap-2">
-                <Bell className="w-3 h-3 text-emerald-400" />
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-5">
+              <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                <Bell className="w-4 h-4 text-emerald-400" />
                 Notifications
-              </h2>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 p-1.5 bg-black/30 rounded-lg border border-white/5 cursor-pointer transition-colors hover:bg-black/40">
+              </h3>
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 p-2 bg-black/30 rounded-lg border border-white/5 cursor-pointer transition-colors hover:bg-black/40">
                   <input
                     type="checkbox"
                     checked={emailNotifications}
                     onChange={() => setEmailNotifications(!emailNotifications)}
-                    className="w-3 h-3 accent-purple-500"
+                    className="w-4 h-4 accent-purple-500"
                   />
-                  <span className="text-xs">Email notifications</span>
+                  <span className="text-sm">Email notifications</span>
                 </label>
-                <label className="flex items-center gap-2 p-1.5 bg-black/30 rounded-lg border border-white/5 cursor-pointer transition-colors hover:bg-black/40">
+                <label className="flex items-center gap-3 p-2 bg-black/30 rounded-lg border border-white/5 cursor-pointer transition-colors hover:bg-black/40">
                   <input
                     type="checkbox"
                     checked={orderUpdates}
                     onChange={() => setOrderUpdates(!orderUpdates)}
-                    className="w-3 h-3 accent-purple-500"
+                    className="w-4 h-4 accent-purple-500"
                   />
-                  <span className="text-xs">Order status updates</span>
+                  <span className="text-sm">Order status updates</span>
                 </label>
                 <button
                   onClick={handleSaveNotifications}
                   disabled={notifStatus.type === 'loading' || !notifLoaded}
-                  className="w-full py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105 transition-all disabled:opacity-50"
+                  className="w-full py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-bold hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105 transition-all disabled:opacity-50"
                 >
                   {notifStatus.type === 'loading' ? (
                     <span className="flex items-center justify-center gap-1">
@@ -420,7 +402,7 @@ export default function ProfileSettingsPage() {
                   )}
                 </button>
                 {notifStatus.type !== 'idle' && (
-                  <div className={`p-1.5 rounded-lg text-xs ${
+                  <div className={`p-2 rounded-lg text-xs ${
                     notifStatus.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' :
                     notifStatus.type === 'error' ? 'bg-red-500/20 text-red-400' :
                     'bg-blue-500/20 text-blue-400'
@@ -433,24 +415,24 @@ export default function ProfileSettingsPage() {
           </div>
 
           {/* RIGHT COLUMN – Email + Password */}
-          <div className="md:col-span-2 space-y-3">
-            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-3">
-              <h2 className="text-sm font-bold mb-2 flex items-center gap-2">
-                <Mail className="w-3 h-3 text-purple-400" />
+          <div className="md:col-span-2 space-y-5">
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Mail className="w-5 h-5 text-purple-400" />
                 Email Address
-              </h2>
-              <p className="text-xs text-gray-400 mb-2">
-                Current: <strong>{email}</strong>
+              </h3>
+              <p className="text-sm text-gray-400 mb-3">
+                Current: <span className="text-white">{email}</span>
               </p>
 
               {!showVerificationInput ? (
-                <form onSubmit={handleRequestEmailChange} className="space-y-2">
+                <form onSubmit={handleRequestEmailChange} className="space-y-3">
                   <div>
                     <label className="block text-xs font-medium mb-1 text-gray-400">New Email</label>
                     <input
                       type="email"
                       required
-                      className="w-full px-2 py-1.5 rounded-lg bg-black/30 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all"
+                      className="w-full px-4 py-2.5 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
                       value={newEmail}
                       onChange={(e) => setNewEmail(e.target.value)}
                     />
@@ -458,7 +440,7 @@ export default function ProfileSettingsPage() {
                   <button
                     type="submit"
                     disabled={emailStatus.type === 'loading'}
-                    className="w-full py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:scale-105 transition-all disabled:opacity-50"
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:scale-105 transition-all disabled:opacity-50"
                   >
                     {emailStatus.type === 'loading' ? (
                       <span className="flex items-center justify-center gap-1">
@@ -469,7 +451,7 @@ export default function ProfileSettingsPage() {
                     )}
                   </button>
                   {emailStatus.type !== 'idle' && (
-                    <div className={`p-1.5 rounded-lg text-xs ${
+                    <div className={`p-2 rounded-lg text-xs ${
                       emailStatus.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' :
                       emailStatus.type === 'error' ? 'bg-red-500/20 text-red-400' :
                       'bg-blue-500/20 text-blue-400'
@@ -479,8 +461,8 @@ export default function ProfileSettingsPage() {
                   )}
                 </form>
               ) : (
-                <form onSubmit={handleVerifyEmailChange} className="space-y-2">
-                  <div className="bg-yellow-500/10 p-2 rounded-lg border border-yellow-500/20">
+                <form onSubmit={handleVerifyEmailChange} className="space-y-3">
+                  <div className="bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/20">
                     <p className="text-xs text-yellow-300">
                       Code sent to <strong>{newEmail}</strong>
                     </p>
@@ -491,7 +473,7 @@ export default function ProfileSettingsPage() {
                       type="text"
                       required
                       placeholder="123456"
-                      className="w-full px-2 py-1.5 rounded-lg bg-black/30 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all"
+                      className="w-full px-4 py-2.5 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
                       value={verificationCode}
                       onChange={(e) => setVerificationCode(e.target.value)}
                     />
@@ -499,7 +481,7 @@ export default function ProfileSettingsPage() {
                   <button
                     type="submit"
                     disabled={emailStatus.type === 'loading'}
-                    className="w-full py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105 transition-all disabled:opacity-50"
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-bold hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105 transition-all disabled:opacity-50"
                   >
                     {emailStatus.type === 'loading' ? (
                       <span className="flex items-center justify-center gap-1">
@@ -510,7 +492,7 @@ export default function ProfileSettingsPage() {
                     )}
                   </button>
                   {emailStatus.type !== 'idle' && (
-                    <div className={`p-1.5 rounded-lg text-xs ${
+                    <div className={`p-2 rounded-lg text-xs ${
                       emailStatus.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' :
                       emailStatus.type === 'error' ? 'bg-red-500/20 text-red-400' :
                       'bg-blue-500/20 text-blue-400'
@@ -529,28 +511,28 @@ export default function ProfileSettingsPage() {
               )}
             </div>
 
-            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-3">
-              <h2 className="text-sm font-bold mb-2 flex items-center gap-2">
-                <Lock className="w-3 h-3 text-blue-400" />
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Lock className="w-5 h-5 text-blue-400" />
                 Change Password
-              </h2>
-              <form onSubmit={handleUpdatePassword} className="space-y-2">
+              </h3>
+              <form onSubmit={handleUpdatePassword} className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium mb-1 text-gray-400">Current Password</label>
                   <div className="relative">
                     <input
                       type={showPasswords.current ? 'text' : 'password'}
                       required
-                      className="w-full px-2 py-1.5 rounded-lg bg-black/30 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all"
+                      className="w-full px-4 py-2.5 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
                       value={passwordData.currentPassword}
                       onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                     >
-                      {showPasswords.current ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
@@ -561,21 +543,20 @@ export default function ProfileSettingsPage() {
                     <input
                       type={showPasswords.new ? 'text' : 'password'}
                       required
-                      className="w-full px-2 py-1.5 rounded-lg bg-black/30 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all"
+                      className="w-full px-4 py-2.5 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
                       value={passwordData.newPassword}
                       onChange={handlePasswordChange}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                     >
-                      {showPasswords.new ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
 
-                {/* Password Strength Meter */}
                 {passwordData.newPassword.length > 0 && (
                   <div className="space-y-1">
                     <div className="flex gap-1">
@@ -617,16 +598,16 @@ export default function ProfileSettingsPage() {
                     <input
                       type={showPasswords.confirm ? 'text' : 'password'}
                       required
-                      className="w-full px-2 py-1.5 rounded-lg bg-black/30 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all"
+                      className="w-full px-4 py-2.5 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
                       value={passwordData.confirmPassword}
                       onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                     >
-                      {showPasswords.confirm ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
@@ -634,7 +615,7 @@ export default function ProfileSettingsPage() {
                 <button
                   type="submit"
                   disabled={passwordStatus.type === 'loading'}
-                  className="w-full py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-xs font-bold hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:scale-105 transition-all disabled:opacity-50"
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-bold hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:scale-105 transition-all disabled:opacity-50"
                 >
                   {passwordStatus.type === 'loading' ? (
                     <span className="flex items-center justify-center gap-1">
@@ -645,7 +626,7 @@ export default function ProfileSettingsPage() {
                   )}
                 </button>
                 {passwordStatus.type !== 'idle' && (
-                  <div className={`p-1.5 rounded-lg text-xs ${
+                  <div className={`p-2 rounded-lg text-xs ${
                     passwordStatus.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' :
                     passwordStatus.type === 'error' ? 'bg-red-500/20 text-red-400' :
                     'bg-blue-500/20 text-blue-400'
