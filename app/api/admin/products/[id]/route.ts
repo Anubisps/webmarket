@@ -58,7 +58,7 @@ export async function PUT(
     const {
       name, slug, description, price, stock, categoryId,
       isActive, isLimited, discount, startDate, endDate,
-      images, variants, bannerImage, availabilityMessage
+      images, variants, bannerImage, estimatedDelivery, customNote
     } = body
 
     const updateData: any = {
@@ -75,13 +75,10 @@ export async function PUT(
       endDate: endDate ? new Date(endDate) : null,
       images: images || [],
       variants: variants || null,
-      bannerImage: bannerImage || null
+      bannerImage: bannerImage || null,
+      estimatedDelivery: estimatedDelivery || null,
+      customNote: customNote || null
     }
-
-    // If you have an availabilityMessage column in your Product model, uncomment:
-    // if (availabilityMessage !== undefined) {
-    //   updateData.availabilityMessage = availabilityMessage
-    // }
 
     const product = await prisma.product.update({
       where: { id },

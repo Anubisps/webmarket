@@ -10,7 +10,9 @@ import {
   AlertCircle, 
   CheckCircle, 
   Truck, 
-  Calendar 
+  Calendar,
+  Info,
+  Package
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -33,10 +35,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const imageSrc = firstImage ? `/api/images/products/${firstImage.split('/').pop()}` : null
   const bannerSrc = product.bannerImage ? `/api/images/products/${product.bannerImage.split('/').pop()}` : null
 
-  const estimatedDelivery = 'Instant (after payment)'
   const stockStatus = product.stock > 0 ? 'In Stock' : 'Out of Stock'
+  const isOutOfStock = product.stock <= 0
 
-  // Dynamic availability message
+  // Dynamic availability message (from limited event dates)
   const getAvailabilityMessage = () => {
     if (product.stock <= 0) return "OUT OF STOCK"
     if (!product.isLimited) return "Always available"
@@ -53,7 +55,21 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   }
 
   const availabilityMessage = getAvailabilityMessage()
-  const isOutOfStock = product.stock <= 0
+
+  // Estimated delivery display – custom from admin or default
+  const getDeliveryText = () => {
+    if (product.estimatedDelivery) return product.estimatedDelivery
+    // Default options based on product type
+    if (product.isLimited) return "Limited time – fast delivery"
+    return "Instant (after payment)"
+  }
+
+  const deliveryText = getDeliveryText()
+
+  // Format description with line breaks
+  const formattedDescription = product.description?.split('\n').map((line, i) => (
+    <p key={i} className="mb-2 last:mb-0">{line}</p>
+  ))
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white py-8 md:py-12">
@@ -63,7 +79,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-pink-600/10 rounded-full blur-3xl"></div>
         </div>
 
-        {/* Back button - fixed clickability */}
+        {/* Back button */}
         <Link 
           href="/products" 
           className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors group z-20 relative"
@@ -77,9 +93,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           {bannerSrc && (
             <div className="relative w-full h-48 md:h-56 overflow-hidden">
               <img src={bannerSrc} alt="Banner" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                {/* No rating number */}
-              </div>
+              <div className="absolute inset-0 bg-black/40"></div>
             </div>
           )}
 
@@ -127,7 +141,30 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 )}
               </div>
 
-              <p className="text-gray-300 text-lg leading-relaxed mb-6">{product.description}</p>
+              {/* Description with line breaks */}
+              <div className="text-gray-300 text-lg leading-relaxed mb-6">
+                {formattedDescription || <p>{product.description}</p>}
+              </div>
+
+              {/* Stock display for everyone */}
+              <div className="mb-4 flex items-center gap-2">
+                <Package className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-400">Stock:</span>
+                <span className={`text-sm font-medium ${product.stock > 10 ? 'text-emerald-400' : product.stock > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                  {product.stock > 0 ? `${product.stock} units available` : 'Out of stock'}
+                </span>
+              </div>
+
+              {/* Custom Note (if set by admin) */}
+              {product.customNote && (
+                <div className="mb-6 p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Info className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm font-semibold text-blue-400">Important Note</span>
+                  </div>
+                  <p className="text-sm text-gray-300">{product.customNote}</p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-black/30 rounded-xl p-3 border border-white/5">
@@ -156,14 +193,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   <p className="text-xs text-gray-400">Estimated Delivery</p>
                   <p className="text-sm flex items-center gap-2">
                     <Truck className="w-4 h-4 text-blue-400" />
-                    <span>{estimatedDelivery}</span>
+                    <span>{deliveryText}</span>
                   </p>
                 </div>
                 <div className="bg-black/30 rounded-xl p-3 border border-white/5">
                   <p className="text-xs text-gray-400">Availability</p>
                   <p className="text-sm flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-yellow-400" />
-                    <span className={availabilityMessage === "OUT OF STOCK" ? "text-red-400 font-bold" : (availabilityMessage.includes("Expired") ? "text-red-400" : "text-emerald-400")}>
+                    <span className={availabilityMessage.includes("OUT OF STOCK") ? "text-red-400 font-bold" : (availabilityMessage.includes("Expired") ? "text-red-400" : "text-emerald-400")}>
                       {availabilityMessage}
                     </span>
                   </p>

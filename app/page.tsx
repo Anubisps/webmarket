@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { 
-  ArrowRight, Shield, Zap, Clock, Star, Lock, CreditCard, Users, Flame, Gem, Rocket 
+  ArrowRight, Shield, Zap, Clock, Sparkles, ShoppingCart, 
+  Star, Lock, CreditCard, Users, Flame, Gem, Rocket 
 } from 'lucide-react'
 
 export default async function Home() {
-  // Fetch limited (event) products
+  // Fetch only limited (event) products
   const limitedProducts = await prisma.product.findMany({
     where: {
       isActive: true,
@@ -158,45 +159,60 @@ export default async function Home() {
                 <p className="text-gray-500 text-sm">Check back soon for exciting deals!</p>
               </div>
             ) : (
-              limitedProducts.map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/products/${product.slug}`}
-                  className="group relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 hover:border-purple-500/50 hover:-translate-y-2 transition-all duration-500"
-                >
-                  <div className="h-48 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 relative">
-                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300"></div>
-                    <div className="absolute top-3 right-3 bg-red-500/90 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-lg">
-                      <Flame className="w-3 h-3" /> LIMITED
-                    </div>
-                    {product.category?.name && (
-                      <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full">
-                        {product.category.name}
+              limitedProducts.map((product) => {
+                // ✅ FIXED: Get the first image correctly – same as product detail page
+                const firstImage = product.images && product.images.length > 0 ? product.images[0] : null
+                const imageSrc = firstImage ? `/api/images/products/${firstImage.split('/').pop()}` : null
+
+                return (
+                  <Link
+                    key={product.id}
+                    href={`/products/${product.slug}`}
+                    className="group relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 hover:border-purple-500/50 hover:-translate-y-2 transition-all duration-500"
+                  >
+                    <div className="h-48 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 relative">
+                      {imageSrc ? (
+                        <img 
+                          src={imageSrc} 
+                          alt={product.name} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500" />
+                      )}
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300"></div>
+                      <div className="absolute top-3 right-3 bg-red-500/90 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-lg">
+                        <Flame className="w-3 h-3" /> LIMITED
                       </div>
-                    )}
-                  </div>
-                  <div className="p-5">
-                    <h3 className="text-lg font-bold mb-1 group-hover:text-purple-400 transition-colors">
-                      {product.name}
-                    </h3>
-                    <div className="flex items-baseline gap-2 mt-2">
-                      <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                        ${product.price.toFixed(2)}
-                      </span>
-                      <span className="text-xs text-gray-400">USDC</span>
+                      {product.category?.name && (
+                        <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full">
+                          {product.category.name}
+                        </div>
+                      )}
                     </div>
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-xs text-yellow-400">
-                        <Star className="w-3 h-3 fill-current" />
-                        <span>4.9</span>
+                    <div className="p-5">
+                      <h3 className="text-lg font-bold mb-1 group-hover:text-purple-400 transition-colors">
+                        {product.name}
+                      </h3>
+                      <div className="flex items-baseline gap-2 mt-2">
+                        <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                          ${product.price.toFixed(2)}
+                        </span>
+                        <span className="text-xs text-gray-400">USDC</span>
                       </div>
-                      <span className="text-sm font-medium text-purple-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                        View <ArrowRight className="w-3 h-3" />
-                      </span>
+                      <div className="mt-4 flex items-center justify-between">
+                        <div className="flex items-center gap-1 text-xs text-yellow-400">
+                          <Star className="w-3 h-3 fill-current" />
+                          <span>4.9</span>
+                        </div>
+                        <span className="text-sm font-medium text-purple-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                          View <ArrowRight className="w-3 h-3" />
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))
+                  </Link>
+                )
+              })
             )}
           </div>
         </div>

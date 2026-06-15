@@ -2,9 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Sparkles, Package, Save, Box, Edit, Upload, Image as ImageIcon, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Sparkles, Package, Save, Box, Edit, Upload, Image as ImageIcon, AlertCircle, Truck, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { revalidateHomepage } from '@/app/actions/productActions'
 
 export default function EditProductPage() {
   const router = useRouter()
@@ -26,8 +25,8 @@ export default function EditProductPage() {
     endDate: '',
     variants: '[]',
     bannerImage: '',
-    availabilityMessage: '',
-    showAvailabilityMessage: false
+    estimatedDelivery: '',
+    customNote: ''
   })
   const [productImage, setProductImage] = useState<string>('')
   const [uploading, setUploading] = useState(false)
@@ -59,8 +58,8 @@ export default function EditProductPage() {
           endDate: data.endDate ? new Date(data.endDate).toISOString().slice(0,16) : '',
           variants: data.variants ? JSON.stringify(data.variants) : '[]',
           bannerImage: data.bannerImage || '',
-          availabilityMessage: data.availabilityMessage || '',
-          showAvailabilityMessage: !!data.availabilityMessage
+          estimatedDelivery: data.estimatedDelivery || '',
+          customNote: data.customNote || ''
         })
         setProductImage(data.images && data.images.length > 0 ? data.images[0] : '')
       })
@@ -95,12 +94,12 @@ export default function EditProductPage() {
           images: productImage ? [productImage] : [],
           variants,
           bannerImage: form.bannerImage || null,
-          availabilityMessage: form.showAvailabilityMessage ? form.availabilityMessage : null
+          estimatedDelivery: form.estimatedDelivery || null,
+          customNote: form.customNote || null
         })
       })
 
       if (res.ok) {
-        await revalidateHomepage()
         toast.success('✅ Product updated successfully!')
         router.push('/accessadmin/products')
       } else {
@@ -202,7 +201,7 @@ export default function EditProductPage() {
 
       {error && <p className="text-red-400 mb-4">{error}</p>}
 
-      <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 max-w-2xl">
+      <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 max-w-3xl">
         {/* Product Image */}
         <div className="mb-6">
           <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
@@ -283,12 +282,13 @@ export default function EditProductPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-400">Description</label>
+            <label className="block text-sm font-medium mb-1 text-gray-400">Description (use line breaks for formatting)</label>
             <textarea
-              rows={3}
+              rows={5}
               className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
               value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
+              placeholder="Write a description. Press Enter to create new paragraphs."
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -304,7 +304,7 @@ export default function EditProductPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-400">Stock</label>
+              <label className="block text-sm font-medium mb-1 text-gray-400">Stock Quantity</label>
               <input
                 type="number"
                 required
@@ -385,30 +385,36 @@ export default function EditProductPage() {
             />
           </div>
 
-          {/* Custom Availability Message Override */}
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm text-gray-400">
-              <input
-                type="checkbox"
-                checked={form.showAvailabilityMessage}
-                onChange={e => setForm({ ...form, showAvailabilityMessage: e.target.checked })}
-                className="w-4 h-4 accent-purple-500"
-              />
-              Override availability message
+          {/* New: Estimated Delivery */}
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-400 flex items-center gap-2">
+              <Truck className="w-4 h-4 text-blue-400" />
+              Estimated Delivery (custom text)
             </label>
+            <input
+              type="text"
+              className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+              value={form.estimatedDelivery}
+              onChange={e => setForm({ ...form, estimatedDelivery: e.target.value })}
+              placeholder="e.g., Instant, 2-3 days, After payment, 24-48 hours"
+            />
+            <p className="text-xs text-gray-500 mt-1">Leave empty to use default: "Instant (after payment)"</p>
           </div>
-          {form.showAvailabilityMessage && (
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-400">Custom Availability Message</label>
-              <input
-                type="text"
-                className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                value={form.availabilityMessage}
-                onChange={e => setForm({ ...form, availabilityMessage: e.target.value })}
-                placeholder="e.g. Ends in 3 days"
-              />
-            </div>
-          )}
+
+          {/* New: Custom Note */}
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-400 flex items-center gap-2">
+              <Info className="w-4 h-4 text-yellow-400" />
+              Custom Note (shown on product page)
+            </label>
+            <textarea
+              rows={3}
+              className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+              value={form.customNote}
+              onChange={e => setForm({ ...form, customNote: e.target.value })}
+              placeholder="e.g., This is a digital product delivered via email. Contact support after purchase."
+            />
+          </div>
 
           <button
             type="submit"

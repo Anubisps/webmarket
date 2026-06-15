@@ -81,7 +81,11 @@ model Product {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  // ✅ New category relation
+  deliveryEstimate String? 
+  estimatedDelivery String?   // e.g., "Instant", "2-3 days", "After payment"
+  productNote      String?   
+  customDelivery String?   // if deliveryOption = "custom"
+  customNote     String?   // custom note shown on product page
   categoryId  String?
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
