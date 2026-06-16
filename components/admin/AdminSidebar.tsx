@@ -16,6 +16,7 @@ import {
   Tag,
   Shield,
   CreditCard,
+  Bell,
   LogOut
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
@@ -38,6 +39,7 @@ export function AdminSidebar() {
     { href: '/accessadmin/settings', label: 'Settings', icon: Settings },
     { href: '/accessadmin/settings/payments', label: 'Payments', icon: CreditCard },
     { href: '/accessadmin/settings/security', label: 'Security', icon: Shield },
+    { href: '/accessadmin/settings/notice', label: 'Site Notice', icon: Bell },
   ]
 
   return (

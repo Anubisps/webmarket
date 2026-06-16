@@ -1,17 +1,32 @@
-import { Suspense } from 'react'
-import { ProductGrid } from './ProductGrid'
+import { Suspense } from 'react';
+import { prisma } from '@/lib/db';
+import { ProductGrid } from './ProductGrid';
+import { NoticeBanner } from './NoticeBanner';
 
-export default function ProductsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function ProductsPage() {
+  const activeSetting = await prisma.siteSetting.findUnique({ where: { key: 'notice_active' } });
+  const messageSetting = await prisma.siteSetting.findUnique({ where: { key: 'notice_message' } });
+  const styleSetting = await prisma.siteSetting.findUnique({ where: { key: 'notice_style' } });
+
+  const isActive = activeSetting?.value === 'true';
+  const message = messageSetting?.value || '';
+  const style = (styleSetting?.value as 'info' | 'warning' | 'success' | 'danger' | 'purple') || 'purple';
+
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-gray-400 text-sm">Loading products...</p>
-        </div>
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      {/* Banner positioned at the very top of content area */}
+      <div className="container mx-auto px-4 pt-4 pb-0">
+        {isActive && message && (
+          <div className="mb-4">
+            <NoticeBanner message={message} style={style} />
+          </div>
+        )}
       </div>
-    }>
-      <ProductGrid />
-    </Suspense>
-  )
+      <Suspense fallback={<div className="flex items-center justify-center py-20">Loading...</div>}>
+        <ProductGrid />
+      </Suspense>
+    </div>
+  );
 }

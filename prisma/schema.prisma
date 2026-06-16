@@ -384,3 +384,4 @@ model Faq {
   @@index([order])
   @@index([isActive])
 }
+
