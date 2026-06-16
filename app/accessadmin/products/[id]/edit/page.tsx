@@ -2,8 +2,28 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Sparkles, Package, Save, Box, Edit, Upload, Image as ImageIcon, AlertCircle, Truck, Info } from 'lucide-react'
+import { ArrowLeft, Sparkles, Package, Save, Box, Edit, Upload, Image as ImageIcon, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { revalidateHomepage } from '@/app/actions/productActions'
+
+// Loading error component
+function ProductLoadingError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center">
+      <div className="text-center">
+        <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Failed to Load Product</h2>
+        <p className="text-gray-400 mb-4">The product data could not be loaded.</p>
+        <button
+          onClick={onRetry}
+          className="px-6 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
+        >
+          Try Again
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function EditProductPage() {
   const router = useRouter()
@@ -11,6 +31,7 @@ export default function EditProductPage() {
   const id = params.id as string
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [loadError, setLoadError] = useState(false)
   const [form, setForm] = useState({
     name: '',
     slug: '',
@@ -25,8 +46,8 @@ export default function EditProductPage() {
     endDate: '',
     variants: '[]',
     bannerImage: '',
-    estimatedDelivery: '',
-    customNote: ''
+    availabilityMessage: '',
+    showAvailabilityMessage: false
   })
   const [productImage, setProductImage] = useState<string>('')
   const [uploading, setUploading] = useState(false)
@@ -42,7 +63,10 @@ export default function EditProductPage() {
 
   useEffect(() => {
     fetch(`/api/admin/products/${id}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load product')
+        return res.json()
+      })
       .then(data => {
         setForm({
           name: data.name,
@@ -58,12 +82,17 @@ export default function EditProductPage() {
           endDate: data.endDate ? new Date(data.endDate).toISOString().slice(0,16) : '',
           variants: data.variants ? JSON.stringify(data.variants) : '[]',
           bannerImage: data.bannerImage || '',
-          estimatedDelivery: data.estimatedDelivery || '',
-          customNote: data.customNote || ''
+          availabilityMessage: data.availabilityMessage || '',
+          showAvailabilityMessage: !!data.availabilityMessage
         })
         setProductImage(data.images && data.images.length > 0 ? data.images[0] : '')
+        setLoadError(false)
       })
-      .catch(err => setError('Failed to load product'))
+      .catch(err => {
+        console.error('Load error:', err)
+        setLoadError(true)
+        setError('Failed to load product')
+      })
   }, [id])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,12 +123,12 @@ export default function EditProductPage() {
           images: productImage ? [productImage] : [],
           variants,
           bannerImage: form.bannerImage || null,
-          estimatedDelivery: form.estimatedDelivery || null,
-          customNote: form.customNote || null
+          availabilityMessage: form.showAvailabilityMessage ? form.availabilityMessage : null
         })
       })
 
       if (res.ok) {
+        await revalidateHomepage()
         toast.success('✅ Product updated successfully!')
         router.push('/accessadmin/products')
       } else {
@@ -175,6 +204,10 @@ export default function EditProductPage() {
     toast.success('Banner image removed')
   }
 
+  if (loadError) {
+    return <ProductLoadingError onRetry={() => window.location.reload()} />
+  }
+
   if (!form.name && !error) return <div className="p-8 text-center text-gray-400">Loading product...</div>
 
   return (
@@ -201,7 +234,7 @@ export default function EditProductPage() {
 
       {error && <p className="text-red-400 mb-4">{error}</p>}
 
-      <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 max-w-3xl">
+      <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 max-w-2xl">
         {/* Product Image */}
         <div className="mb-6">
           <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
@@ -282,13 +315,12 @@ export default function EditProductPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-400">Description (use line breaks for formatting)</label>
+            <label className="block text-sm font-medium mb-1 text-gray-400">Description</label>
             <textarea
-              rows={5}
+              rows={3}
               className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
               value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
-              placeholder="Write a description. Press Enter to create new paragraphs."
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -304,7 +336,7 @@ export default function EditProductPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-400">Stock Quantity</label>
+              <label className="block text-sm font-medium mb-1 text-gray-400">Stock</label>
               <input
                 type="number"
                 required
@@ -385,41 +417,35 @@ export default function EditProductPage() {
             />
           </div>
 
-          {/* New: Estimated Delivery */}
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-400 flex items-center gap-2">
-              <Truck className="w-4 h-4 text-blue-400" />
-              Estimated Delivery (custom text)
+          {/* Custom Availability Message Override */}
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 text-sm text-gray-400">
+              <input
+                type="checkbox"
+                checked={form.showAvailabilityMessage}
+                onChange={e => setForm({ ...form, showAvailabilityMessage: e.target.checked })}
+                className="w-4 h-4 accent-purple-500"
+              />
+              Override availability message
             </label>
-            <input
-              type="text"
-              className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-              value={form.estimatedDelivery}
-              onChange={e => setForm({ ...form, estimatedDelivery: e.target.value })}
-              placeholder="e.g., Instant, 2-3 days, After payment, 24-48 hours"
-            />
-            <p className="text-xs text-gray-500 mt-1">Leave empty to use default: "Instant (after payment)"</p>
           </div>
-
-          {/* New: Custom Note */}
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-400 flex items-center gap-2">
-              <Info className="w-4 h-4 text-yellow-400" />
-              Custom Note (shown on product page)
-            </label>
-            <textarea
-              rows={3}
-              className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-              value={form.customNote}
-              onChange={e => setForm({ ...form, customNote: e.target.value })}
-              placeholder="e.g., This is a digital product delivered via email. Contact support after purchase."
-            />
-          </div>
+          {form.showAvailabilityMessage && (
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-400">Custom Availability Message</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                value={form.availabilityMessage}
+                onChange={e => setForm({ ...form, availabilityMessage: e.target.value })}
+                placeholder="e.g. Ends in 3 days"
+              />
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:shadow-[0_0_50px_rgba(168,85,247,0.5)] hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:shadow-[0_0_50px_rgba(168,85,247,0.5)] hover:scale-[1.02] transition-all disabled:opacity-50"
           >
             {loading ? 'Updating...' : 'Update Product'}
           </button>

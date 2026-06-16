@@ -80,6 +80,7 @@ model Product {
   variants    Json?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  deletedAt DateTime?
 
   deliveryEstimate String? 
   estimatedDelivery String?   // e.g., "Instant", "2-3 days", "After payment"
@@ -88,6 +89,7 @@ model Product {
   customNote     String?   // custom note shown on product page
   categoryId  String?
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  order Int @default(0)
 
   reviews     Review[]
   orderItems  OrderItem[]

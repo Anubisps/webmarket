@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
 
-// GET – fetch a single product
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -21,7 +20,7 @@ export async function GET(
 
     const { id } = await params
     const product = await prisma.product.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
       include: { category: true }
     })
 
@@ -36,7 +35,6 @@ export async function GET(
   }
 }
 
-// PUT – update a product
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -58,31 +56,27 @@ export async function PUT(
     const {
       name, slug, description, price, stock, categoryId,
       isActive, isLimited, discount, startDate, endDate,
-      images, variants, bannerImage, estimatedDelivery, customNote
+      images, variants, bannerImage
     } = body
-
-    const updateData: any = {
-      name,
-      slug,
-      description,
-      price: parseFloat(price),
-      stock: parseInt(stock),
-      categoryId: categoryId || null,
-      isActive,
-      isLimited,
-      discount: discount ? parseFloat(discount) : null,
-      startDate: startDate ? new Date(startDate) : null,
-      endDate: endDate ? new Date(endDate) : null,
-      images: images || [],
-      variants: variants || null,
-      bannerImage: bannerImage || null,
-      estimatedDelivery: estimatedDelivery || null,
-      customNote: customNote || null
-    }
 
     const product = await prisma.product.update({
       where: { id },
-      data: updateData
+      data: {
+        name,
+        slug,
+        description,
+        price: parseFloat(price),
+        stock: parseInt(stock),
+        categoryId: categoryId || null,
+        isActive,
+        isLimited,
+        discount: discount ? parseFloat(discount) : null,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        images: images || [],
+        variants: variants || null,
+        bannerImage: bannerImage || null
+      }
     })
 
     return NextResponse.json(product)
@@ -92,7 +86,6 @@ export async function PUT(
   }
 }
 
-// DELETE – remove a product
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -110,9 +103,14 @@ export async function DELETE(
     }
 
     const { id } = await params
-    await prisma.product.delete({ where: { id } })
 
-    return NextResponse.json({ success: true })
+    // ✅ Soft delete – set deletedAt timestamp instead of deleting
+    await prisma.product.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    })
+
+    return NextResponse.json({ success: true, message: 'Product archived (soft deleted)' })
   } catch (error) {
     console.error('DELETE product error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

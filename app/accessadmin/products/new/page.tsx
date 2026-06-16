@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Sparkles, Package, Plus } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export default function NewProductPage() {
   const router = useRouter()
@@ -14,34 +15,62 @@ export default function NewProductPage() {
     description: '',
     price: '',
     stock: '',
-    category: '',
+    categoryId: '',
     isActive: true,
     isLimited: false,
     discount: '',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    variants: '[]',
+    bannerImage: ''
   })
+  const [categories, setCategories] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch('/api/admin/categories')
+      .then(res => res.json())
+      .then(data => setCategories(data))
+      .catch(err => console.error('Failed to load categories:', err))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
+    let variants = []
+    try {
+      variants = JSON.parse(form.variants)
+    } catch (err) {
+      setError('Invalid JSON format for variants')
+      setLoading(false)
+      return
+    }
+
     try {
       const res = await fetch('/api/admin/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
+          name: form.name,
+          slug: form.slug,
+          description: form.description,
           price: parseFloat(form.price),
           stock: parseInt(form.stock),
+          categoryId: form.categoryId || null,
+          isActive: form.isActive,
+          isLimited: form.isLimited,
           discount: form.discount ? parseFloat(form.discount) : null,
           startDate: form.startDate ? new Date(form.startDate) : null,
-          endDate: form.endDate ? new Date(form.endDate) : null
+          endDate: form.endDate ? new Date(form.endDate) : null,
+          images: [],
+          variants,
+          bannerImage: null
         })
       })
 
       if (res.ok) {
+        toast.success('✅ Product created successfully!')
         router.push('/accessadmin/products')
       } else {
         const data = await res.json()
@@ -56,8 +85,6 @@ export default function NewProductPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
-      
-      {/* ===== HEADER ===== */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
         <div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-4">
@@ -78,9 +105,9 @@ export default function NewProductPage() {
         </Link>
       </div>
 
-      {/* ===== FORM CARD ===== */}
+      {error && <p className="text-red-400 mb-4">{error}</p>}
+
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 max-w-2xl">
-        {error && <p className="text-red-400 mb-4">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -136,16 +163,22 @@ export default function NewProductPage() {
               />
             </div>
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-400">Category</label>
-            <input
-              type="text"
+            <select
               required
               className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-              value={form.category}
-              onChange={e => setForm({ ...form, category: e.target.value })}
-            />
+              value={form.categoryId}
+              onChange={e => setForm({ ...form, categoryId: e.target.value })}
+            >
+              <option value="">Select a category</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
           </div>
+
           <div className="flex gap-6">
             <label className="flex items-center gap-2 text-sm text-gray-400">
               <input
@@ -202,7 +235,7 @@ export default function NewProductPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:shadow-[0_0_50px_rgba(168,85,247,0.5)] hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:shadow-[0_0_50px_rgba(168,85,247,0.5)] hover:scale-[1.02] transition-all disabled:opacity-50"
           >
             {loading ? 'Creating...' : 'Create Product'}
           </button>

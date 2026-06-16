@@ -2,88 +2,105 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
 
-export async function POST(request: Request) {
+export async function GET() {
   try {
-    // 1. Authentication
     const session = await getServerSession()
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
     const user = await prisma.user.findUnique({
       where: { email: session.user.email }
     })
+
     if (!user || !['admin', 'manager'].includes(user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // 2. Parse request body
-    const body = await request.json()
+    const products = await prisma.product.findMany({
+      where: { deletedAt: null },
+      include: {
+        category: {
+          select: { name: true }
+        }
+      },
+      orderBy: { order: 'asc' }
+    })
+
+    return NextResponse.json(products)
+  } catch (error) {
+    console.error('GET /api/admin/products error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const session = await getServerSession()
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+
+    if (!user || !['admin', 'manager'].includes(user.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const body = await req.json()
+    console.log('📦 Received product data:', JSON.stringify(body, null, 2))
+
     const {
-      name, slug, description, price, stock, category,
-      isActive, isLimited, discount, startDate, endDate
+      name, slug, description = '', price, stock, categoryId,
+      isActive = true, isLimited = false, discount = null,
+      startDate = null, endDate = null, images = [],
+      variants = '[]', bannerImage = null
     } = body
 
-    // 3. Validate required fields
-    if (!name || !slug || !price || !stock || !category) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
+    if (!name || !slug || price === undefined || stock === undefined) {
+      console.error('❌ Missing required fields:', { name, slug, price, stock })
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // 4. Check slug uniqueness
-    const existing = await prisma.product.findUnique({
-      where: { slug }
-    })
-    if (existing) {
-      return NextResponse.json(
-        { error: 'Slug already exists' },
-        { status: 400 }
-      )
-    }
-
-    // 5. 🔑 Find the category by name OR slug
-    const categoryRecord = await prisma.category.findFirst({
-      where: {
-        OR: [
-          { name: category },
-          { slug: category }
-        ]
+    let parsedVariants = null
+    if (variants) {
+      try {
+        parsedVariants = typeof variants === 'string' ? JSON.parse(variants) : variants
+      } catch (e) {
+        console.error('⚠️ Failed to parse variants:', e)
+        parsedVariants = null
       }
-    })
-
-    if (!categoryRecord) {
-      return NextResponse.json(
-        { error: `Category "${category}" not found. Please create it first.` },
-        { status: 400 }
-      )
     }
 
-    // 6. Create product with proper category relation
     const product = await prisma.product.create({
       data: {
-        name,
-        slug,
-        description: description || '',
+        name: name.trim(),
+        slug: slug.trim(),
+        description: description.trim(),
         price: parseFloat(price),
         stock: parseInt(stock),
-        category: {
-          connect: { id: categoryRecord.id }
-        },
-        isActive: isActive !== undefined ? isActive : true,
-        isLimited: isLimited || false,
+        categoryId: categoryId || null,
+        isActive,
+        isLimited,
         discount: discount ? parseFloat(discount) : null,
         startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null
+        endDate: endDate ? new Date(endDate) : null,
+        images: images,
+        variants: parsedVariants,
+        bannerImage: bannerImage,
+        order: 0
       }
     })
 
-    return NextResponse.json({ success: true, product })
+    console.log('✅ Product created:', product.id)
+    return NextResponse.json(product)
   } catch (error) {
-    console.error('Product creation error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    console.error('🔥 Product creation error:', error)
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
