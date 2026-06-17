@@ -29,9 +29,7 @@ export default function AboutPage() {
             <h2 className="text-2xl font-bold">Our Mission</h2>
           </div>
           <p className="text-gray-300 leading-relaxed">
-            WindVault Market was created to solve the problem of insecure, slow, and unreliable gaming marketplaces. 
-            We combine state-of-the-art encryption, instant delivery, and a 24/7 support team to give you the 
-            best possible experience.
+           WindVault Market is dedicated to being the premier destination for in-game assets. We prioritize your needs by offering industry-leading prices, rapid fulfillment, and a platform built for total security and privacy. We work directly to streamline your experience, ensuring a safe, anonymous, and faster service than anywhere else.
           </p>
         </div>
 
@@ -40,7 +38,7 @@ export default function AboutPage() {
             <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
               <Users className="w-6 h-6 text-white" />
             </div>
-            <p className="text-3xl font-bold">10k+</p>
+            <p className="text-3xl font-bold">1k+</p>
             <p className="text-gray-400 text-sm">Happy Users</p>
           </div>
           <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 text-center hover:border-purple-500/30 transition-colors">

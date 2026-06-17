@@ -90,9 +90,9 @@ export default async function Home() {
           <div className="flex flex-wrap justify-center gap-10">
             {[
               { icon: Lock, label: "SSL Encrypted", color: "text-emerald-400" },
-              { icon: Shield, label: "Fraud Protection", color: "text-cyan-400" },
+              { icon: Shield, label: "Guaranteed", color: "text-cyan-400" },
               { icon: CreditCard, label: "Secure Payments", color: "text-purple-400" },
-              { icon: Users, label: "10,000+ Users", color: "text-pink-400" }
+              { icon: Users, label: "1,000+ Users", color: "text-pink-400" }
             ].map((item, idx) => (
               <div key={idx} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 hover:scale-105 transition-transform duration-300">
                 <item.icon className={`w-5 h-5 ${item.color}`} />
@@ -108,16 +108,16 @@ export default async function Home() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Why Choose WindVault?
+              Why WindVault?
             </h2>
             <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-              Experience the future of digital marketplaces
+              The best digital marketplace, priced for you.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { icon: Shield, title: "Secure & Encrypted", desc: "Every transaction protected with industry-standard encryption.", gradient: "from-purple-500 to-pink-500" },
-              { icon: Zap, title: "Instant Delivery", desc: "Get your products immediately after payment confirmation.", gradient: "from-blue-500 to-cyan-500" },
+              { icon: Zap, title: "Optimized Delivery", desc: "Delivered in a flash, instantly or at top speed.", gradient: "from-blue-500 to-cyan-500" },
               { icon: Clock, title: "24/7 Support", desc: "Our team is always here to help with any issues.", gradient: "from-green-500 to-emerald-500" }
             ].map((feature, i) => (
               <div 
@@ -229,7 +229,7 @@ export default async function Home() {
               Ready to Start?
             </h2>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join thousands of happy gamers today and experience the future of digital marketplaces.
+              Experience a better way to shop: competitive prices, guaranteed safety, and fast fulfillment.
             </p>
             <div className="flex flex-wrap gap-5 justify-center">
               <Link
