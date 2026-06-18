@@ -385,3 +385,17 @@ model Faq {
   @@index([isActive])
 }
 
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  sessionId  String?
+  path       String
+  method     String
+  ip         String?
+  userAgent  String?
+  referer    String?
+  query      String?
+  timestamp  DateTime @default(now())
+  eventType  String   @default("pageview")
+  element    String?
+  extra      Json?
+}

@@ -8,38 +8,67 @@ function generateCSRFToken(): string {
 }
 
 export function middleware(request: NextRequest) {
-  // Check if CSRF token cookie exists
+  // ── CSRF ──────────────────────────────────────────────
   let csrfToken = request.cookies.get('csrf_token')?.value
-  
   const response = NextResponse.next()
 
-  // If token doesn't exist, generate and set it
   if (!csrfToken) {
     csrfToken = generateCSRFToken()
     response.cookies.set('csrf_token', csrfToken, {
-      httpOnly: false, // ✅ Allow client-side JavaScript to read it
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 60 * 60 * 24, // 1 day
+      maxAge: 60 * 60 * 24,
       path: '/'
     })
   }
-
-  // ✅ Also set it as a header for server-side verification
   response.headers.set('x-csrf-token', csrfToken)
+
+  // ── Analytics – skip admin pages ─────────────────────
+  const path = request.nextUrl.pathname
+
+  // ❌ Skip: static, API, admin pages, and analytics itself
+  if (
+    path.startsWith('/_next') ||
+    path.startsWith('/api') ||
+    path.startsWith('/static') ||
+    path.startsWith('/accessadmin') ||
+    path.includes('.')
+  ) {
+    return response
+  }
+
+  // Visitor tracking
+  const forwarded = request.headers.get('x-forwarded-for')
+  const ip = forwarded ? forwarded.split(',')[0] : request.headers.get('x-real-ip') || 'unknown'
+  const userAgent = request.headers.get('user-agent') || ''
+  const referer = request.headers.get('referer') || ''
+  const sessionId = request.cookies.get('sessionId')?.value || crypto.randomUUID()
+
+  // Fire POST to analytics API (node.js)
+  const analyticsUrl = new URL('/api/analytics/pageview', request.url)
+  const data = {
+    path,
+    method: request.method,
+    ip,
+    userAgent,
+    referer,
+    query: request.nextUrl.search || '',
+    sessionId,
+  }
+
+  // Non‑blocking fetch
+  fetch(analyticsUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }).catch(() => {})
 
   return response
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - api/csrf (CSRF endpoint)
-     */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/csrf).*)',
   ],
 }
