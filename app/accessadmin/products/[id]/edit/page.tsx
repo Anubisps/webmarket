@@ -47,7 +47,11 @@ export default function EditProductPage() {
     variants: '[]',
     bannerImage: '',
     availabilityMessage: '',
-    showAvailabilityMessage: false
+    showAvailabilityMessage: false,
+    // ✅ New fields
+    productNote: '',
+    customDelivery: '',
+    customNote: '',
   })
   const [productImage, setProductImage] = useState<string>('')
   const [uploading, setUploading] = useState(false)
@@ -83,7 +87,11 @@ export default function EditProductPage() {
           variants: data.variants ? JSON.stringify(data.variants) : '[]',
           bannerImage: data.bannerImage || '',
           availabilityMessage: data.availabilityMessage || '',
-          showAvailabilityMessage: !!data.availabilityMessage
+          showAvailabilityMessage: !!data.availabilityMessage,
+          // ✅ Load new fields
+          productNote: data.productNote || '',
+          customDelivery: data.customDelivery || '',
+          customNote: data.customNote || '',
         })
         setProductImage(data.images && data.images.length > 0 ? data.images[0] : '')
         setLoadError(false)
@@ -123,7 +131,11 @@ export default function EditProductPage() {
           images: productImage ? [productImage] : [],
           variants,
           bannerImage: form.bannerImage || null,
-          availabilityMessage: form.showAvailabilityMessage ? form.availabilityMessage : null
+          availabilityMessage: form.showAvailabilityMessage ? form.availabilityMessage : null,
+          // ✅ Send new fields
+          productNote: form.productNote,
+          customDelivery: form.customDelivery,
+          customNote: form.customNote,
         })
       })
 
@@ -292,6 +304,7 @@ export default function EditProductPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-400">Name</label>
@@ -314,6 +327,7 @@ export default function EditProductPage() {
               />
             </div>
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-400">Description</label>
             <textarea
@@ -323,6 +337,8 @@ export default function EditProductPage() {
               onChange={e => setForm({ ...form, description: e.target.value })}
             />
           </div>
+
+          {/* Price & Stock */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-400">Price (USDC)</label>
@@ -347,7 +363,7 @@ export default function EditProductPage() {
             </div>
           </div>
 
-          {/* Category Dropdown */}
+          {/* Category */}
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-400">Category</label>
             <select
@@ -363,6 +379,7 @@ export default function EditProductPage() {
             </select>
           </div>
 
+          {/* Active & Limited */}
           <div className="flex gap-6">
             <label className="flex items-center gap-2 text-sm text-gray-400">
               <input
@@ -383,6 +400,8 @@ export default function EditProductPage() {
               Limited Time
             </label>
           </div>
+
+          {/* Limited Time Dates */}
           {form.isLimited && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -405,6 +424,8 @@ export default function EditProductPage() {
               </div>
             </div>
           )}
+
+          {/* Discount */}
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-400">Discount (%)</label>
             <input
@@ -417,7 +438,7 @@ export default function EditProductPage() {
             />
           </div>
 
-          {/* Custom Availability Message Override */}
+          {/* ✅ Custom Availability Message Override */}
           <div className="flex gap-6">
             <label className="flex items-center gap-2 text-sm text-gray-400">
               <input
@@ -441,6 +462,42 @@ export default function EditProductPage() {
               />
             </div>
           )}
+
+          {/* ✅ Product Note – shown on product page */}
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-400">Product Note (shown to customers)</label>
+            <textarea
+              rows={2}
+              className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+              value={form.productNote}
+              onChange={e => setForm({ ...form, productNote: e.target.value })}
+              placeholder="e.g. This item requires 2-3 days to prepare"
+            />
+          </div>
+
+          {/* ✅ Custom Delivery & Note */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-400">Custom Delivery (optional)</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                value={form.customDelivery}
+                onChange={e => setForm({ ...form, customDelivery: e.target.value })}
+                placeholder="e.g. 24-48 hours"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-400">Custom Note (optional)</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                value={form.customNote}
+                onChange={e => setForm({ ...form, customNote: e.target.value })}
+                placeholder="e.g. Contact support after purchase"
+              />
+            </div>
+          </div>
 
           <button
             type="submit"

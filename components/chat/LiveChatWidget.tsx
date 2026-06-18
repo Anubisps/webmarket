@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { MessageCircle, X, Send, User, Mail, Sparkles, Phone, XCircle, CheckCircle, CheckCheck, Pencil } from 'lucide-react'
+import { MessageCircle, X, Send, User, Mail, Sparkles, Phone, XCircle, AlertCircle } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import toast from 'react-hot-toast'
 
@@ -65,6 +65,29 @@ export function LiveChatWidget() {
         data.messages?.forEach((msg: any) => processedMessageIds.current.add(msg.id))
         setIsEnded(data.status === 'closed')
         setShowLoginForm(false)
+        // ✅ Send auto-welcome message if no messages exist
+        if (data.messages?.length === 0) {
+          const welcomeMessage = `👋 Welcome ${name}! How can we help you today?`
+          try {
+            const msgRes = await fetch('/api/livechat/messages', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: data.id,
+                sender: 'admin',
+                message: welcomeMessage
+              })
+            })
+            if (msgRes.ok) {
+              const newMsg = await msgRes.json()
+              processedMessageIds.current.add(newMsg.id)
+              lastMessageIdRef.current = newMsg.id
+              setMessages([newMsg])
+            }
+          } catch (err) {
+            console.error('Failed to send welcome message:', err)
+          }
+        }
       }
     } catch (err) {
       console.error('Session init error:', err)
@@ -175,7 +198,7 @@ export function LiveChatWidget() {
     }
   }
 
-  // End chat session (generate new visitor ID for new session)
+  // ✅ End session – original logic: new visitor ID, reset state, show login form
   const endSession = async () => {
     if (!sessionId) return
     if (!confirm('Are you sure you want to end this chat?')) return
@@ -200,7 +223,7 @@ export function LiveChatWidget() {
     }
   }
 
-  // Expedite Call
+  // ✅ Expedite Call – original logic with prompt and cooldown
   const expediteCall = async () => {
     if (!sessionId) return
     const now = Date.now()
@@ -346,29 +369,43 @@ export function LiveChatWidget() {
                 <div className="flex flex-col items-center justify-center h-full text-gray-400">
                   <XCircle className="w-16 h-16 mb-2 opacity-50" />
                   <p className="text-sm">Chat ended</p>
-                  <button onClick={endSession} className="mt-4 px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all">
+                  <button onClick={() => setShowLoginForm(true)} className="mt-4 px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all">
                     Start a new chat
                   </button>
                 </div>
-              ) : messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                  <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-4 animate-pulse">
-                    <MessageCircle className="w-12 h-12 opacity-50" />
-                  </div>
-                  <p className="text-sm">No messages yet</p>
-                  <p className="text-xs text-gray-500">Send a message to start the conversation</p>
-                </div>
               ) : (
-                messages.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.sender === 'admin' ? 'justify-start' : 'justify-end'}`}>
-                    <div className={`max-w-[80%] p-3 rounded-xl text-sm ${msg.sender === 'admin' ? 'bg-white/10 text-gray-200' : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'}`}>
-                      {msg.message}
-                      <div className="text-[10px] mt-1 opacity-50">{new Date(msg.createdAt).toLocaleTimeString()}</div>
+                <>
+                  {/* ✅ Notice Block */}
+                  {!isEnded && (
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-3 flex items-start gap-2 text-yellow-300 text-xs">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <p>
+                        In case we don't reply to your messages within 5 minutes, please use the 
+                        <strong className="text-yellow-400"> Expedite Call</strong> button below to ring our office!
+                      </p>
                     </div>
-                  </div>
-                ))
+                  )}
+                  {messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                      <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-4 animate-pulse">
+                        <MessageCircle className="w-12 h-12 opacity-50" />
+                      </div>
+                      <p className="text-sm">No messages yet</p>
+                      <p className="text-xs text-gray-500">Send a message to start the conversation</p>
+                    </div>
+                  ) : (
+                    messages.map((msg, idx) => (
+                      <div key={idx} className={`flex ${msg.sender === 'admin' ? 'justify-start' : 'justify-end'}`}>
+                        <div className={`max-w-[80%] p-3 rounded-xl text-sm ${msg.sender === 'admin' ? 'bg-white/10 text-gray-200' : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'}`}>
+                          {msg.message}
+                          <div className="text-[10px] mt-1 opacity-50">{new Date(msg.createdAt).toLocaleTimeString()}</div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  <div ref={messagesEndRef} />
+                </>
               )}
-              <div ref={messagesEndRef} />
             </div>
 
             {!isEnded && (

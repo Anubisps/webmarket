@@ -56,7 +56,9 @@ export async function PUT(
     const {
       name, slug, description, price, stock, categoryId,
       isActive, isLimited, discount, startDate, endDate,
-      images, variants, bannerImage
+      images, variants, bannerImage,
+      availabilityMessage, showAvailabilityMessage,
+      productNote, customDelivery, customNote
     } = body
 
     const product = await prisma.product.update({
@@ -75,7 +77,11 @@ export async function PUT(
         endDate: endDate ? new Date(endDate) : null,
         images: images || [],
         variants: variants || null,
-        bannerImage: bannerImage || null
+        bannerImage: bannerImage || null,
+        // ✅ New fields – custom note & delivery
+        productNote: productNote || null,
+        customDelivery: customDelivery || null,
+        customNote: customNote || null,
       }
     })
 
@@ -103,8 +109,7 @@ export async function DELETE(
     }
 
     const { id } = await params
-
-    // ✅ Soft delete – set deletedAt timestamp instead of deleting
+    // Soft delete – set deletedAt timestamp instead of deleting
     await prisma.product.update({
       where: { id },
       data: { deletedAt: new Date() }
