@@ -35,6 +35,7 @@ export function AdminSidebar() {
     { href: '/accessadmin/contact', label: 'Contact Messages', icon: Mail },
     { href: '/accessadmin/affiliates', label: 'Affiliates', icon: Gift },
     { href: '/accessadmin/categories', label: 'Categories', icon: Tag },
+    { href: '/accessadmin/settings/discounts', label: 'Discounts', icon: Tag },
     { href: '/accessadmin/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/accessadmin/livechat', label: 'Live Chat', icon: MessageCircle },
     { href: '/accessadmin/settings', label: 'Settings', icon: Settings },
@@ -57,7 +58,10 @@ export function AdminSidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+            const isActive =
+              item.href === '/accessadmin/settings'
+                ? pathname === '/accessadmin/settings'
+                : pathname === item.href || pathname?.startsWith(item.href + '/')
             return (
               <Link
                 key={item.href}

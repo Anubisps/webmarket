@@ -1,74 +1,82 @@
+'use client'
 import Link from 'next/link'
 import { MessageCircle, Mail, Shield, Zap, Clock, Globe, Share2, Heart } from 'lucide-react'
 
 export function Footer() {
   return (
-    <footer className="relative z-10 bg-black/40 backdrop-blur-md border-t border-white/10 text-gray-300">
+    <footer className="relative z-10 border-t border-white/10 bg-[#0a0a0f] text-gray-200">
       <div className="container mx-auto px-4 py-12">
-        {/* Main footer grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* Brand */}
+        <div className="mb-8 grid grid-cols-1 gap-8 md:grid-cols-4">
           <div>
-            <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">
+            <h3 className="mb-4 text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               WindVault
             </h3>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm leading-relaxed text-gray-300">
               The premier 3rd-party gaming marketplace. Secure, fast, and trusted by thousands.
             </p>
           </div>
 
-          {/* Quick Links */}
           <div>
-            <h4 className="font-semibold text-white mb-3">Quick Links</h4>
+            <h4 className="mb-3 font-semibold text-white">Quick Links</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/products" className="hover:text-purple-400 transition-colors">Products</Link></li>
-              <li><Link href="/about" className="hover:text-purple-400 transition-colors">About Us</Link></li>
-              <li><Link href="/faq" className="hover:text-purple-400 transition-colors">FAQ</Link></li>
-              <li><Link href="/contact" className="hover:text-purple-400 transition-colors">Contact</Link></li>
+              {[
+                { href: '/products', label: 'Products' },
+                { href: '/about', label: 'About Us' },
+                { href: '/faq', label: 'FAQ' },
+                { href: '/contact', label: 'Contact' },
+              ].map(link => (
+                <li key={link.href}>
+                  <Link href={link.href} className="text-gray-300 transition hover:text-purple-300">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Support */}
           <div>
-            <h4 className="font-semibold text-white mb-3">Support</h4>
+            <h4 className="mb-3 font-semibold text-white">Support</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/dashboard/tickets" className="hover:text-purple-400 transition-colors">Support Tickets</Link></li>
-              <li><Link href="/dashboard/orders" className="hover:text-purple-400 transition-colors">My Orders</Link></li>
-              <li><Link href="/dashboard/affiliate" className="hover:text-purple-400 transition-colors">Affiliate Program</Link></li>
-              <li><Link href="/dashboard/security" className="hover:text-purple-400 transition-colors">Security</Link></li>
+              {[
+                { href: '/dashboard/tickets', label: 'Support Tickets' },
+                { href: '/dashboard/orders', label: 'My Orders' },
+                { href: '/dashboard/affiliate', label: 'Affiliate Program' },
+                { href: '/dashboard/security', label: 'Security' },
+              ].map(link => (
+                <li key={link.href}>
+                  <Link href={link.href} className="text-gray-300 transition hover:text-purple-300">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Social & Contact – links are disabled (no href) */}
           <div>
-            <h4 className="font-semibold text-white mb-3">Connect</h4>
-            <div className="flex space-x-4 mb-4">
-              <span className="p-2 rounded-full bg-white/10 cursor-default opacity-60" aria-label="GitHub (disabled)">
-                <Globe className="w-5 h-5" />
-              </span>
-              <span className="p-2 rounded-full bg-white/10 cursor-default opacity-60" aria-label="Twitter (disabled)">
-                <Share2 className="w-5 h-5" />
-              </span>
-              <span className="p-2 rounded-full bg-white/10 cursor-default opacity-60" aria-label="Contact (disabled)">
-                <Mail className="w-5 h-5" />
-              </span>
-              <span className="p-2 rounded-full bg-white/10 cursor-default opacity-60" aria-label="Live Chat (disabled)">
-                <MessageCircle className="w-5 h-5" />
-              </span>
+            <h4 className="mb-3 font-semibold text-white">Connect</h4>
+            <div className="mb-4 flex space-x-3">
+              {[Globe, Share2, Mail, MessageCircle].map((Icon, i) => (
+                <span key={i} className="cursor-default rounded-full bg-white/10 p-2 text-gray-300 opacity-70">
+                  <Icon className="h-5 w-5" />
+                </span>
+              ))}
             </div>
-            <p className="text-xs text-gray-500">
-              &copy; {new Date().getFullYear()} WindVault Market. <br />
+            <p className="text-xs text-gray-400">
+              &copy; {new Date().getFullYear()} WindVault Market.
+              <br />
               All rights reserved.
             </p>
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="pt-6 border-t border-white/10 flex flex-wrap justify-between items-center text-xs text-gray-500">
-          <p>Secure & Encrypted Transactions</p>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-gray-400">
+          <p className="flex items-center gap-1">
+            <Shield className="h-3.5 w-3.5 text-emerald-400" />
+            Secure & Encrypted Transactions
+          </p>
           <div className="flex gap-4">
-            <Link href="/privacy" className="hover:text-purple-400">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-purple-400">Terms of Service</Link>
+            <Link href="/privacy" className="transition hover:text-purple-300">Privacy Policy</Link>
+            <Link href="/terms" className="transition hover:text-purple-300">Terms of Service</Link>
           </div>
         </div>
       </div>

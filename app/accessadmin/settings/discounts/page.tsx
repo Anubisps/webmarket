@@ -5,7 +5,12 @@ import toast from 'react-hot-toast'
 
 export default function DiscountsPage() {
   const [codes, setCodes] = useState<any[]>([])
-  const [form, setForm] = useState({ code: '', discount: '', expiresAt: '', usageLimit: '' })
+  const [form, setForm] = useState({
+    code: '', discount: '', discountType: 'percent', scopeType: 'all',
+    scopeIds: [] as string[], expiresAt: '', usageLimit: '',
+  })
+  const [products, setProducts] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -18,6 +23,13 @@ export default function DiscountsPage() {
 
   useEffect(() => {
     loadCodes()
+    Promise.all([
+      fetch('/api/admin/products').then(r => r.json()),
+      fetch('/api/admin/categories').then(r => r.json()),
+    ]).then(([p, c]) => {
+      setProducts(Array.isArray(p) ? p : p.products || [])
+      setCategories(Array.isArray(c) ? c : c.categories || [])
+    }).catch(() => {})
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,7 +52,7 @@ export default function DiscountsPage() {
       })
       if (res.ok) {
         toast.success(editingId ? '✅ Discount updated!' : '✅ Discount code created!')
-        setForm({ code: '', discount: '', expiresAt: '', usageLimit: '' })
+        setForm({ code: '', discount: '', discountType: 'percent', scopeType: 'all', scopeIds: [], expiresAt: '', usageLimit: '' })
         setEditingId(null)
         loadCodes()
       } else {
@@ -78,14 +90,17 @@ export default function DiscountsPage() {
     setForm({
       code: code.code,
       discount: code.discount.toString(),
-      expiresAt: code.expiresAt ? new Date(code.expiresAt).toISOString().slice(0,16) : '',
-      usageLimit: code.usageLimit?.toString() || ''
+      discountType: code.discountType || 'percent',
+      scopeType: code.scopeType || 'all',
+      scopeIds: Array.isArray(code.scopeIds) ? code.scopeIds : [],
+      expiresAt: code.expiresAt ? new Date(code.expiresAt).toISOString().slice(0, 16) : '',
+      usageLimit: code.usageLimit?.toString() || '',
     })
     setEditingId(code.id)
   }
 
   const cancelEdit = () => {
-    setForm({ code: '', discount: '', expiresAt: '', usageLimit: '' })
+    setForm({ code: '', discount: '', discountType: 'percent', scopeType: 'all', scopeIds: [], expiresAt: '', usageLimit: '' })
     setEditingId(null)
   }
 
@@ -119,12 +134,71 @@ export default function DiscountsPage() {
             disabled={!!editingId}
           />
           <input
-            placeholder="Discount % (e.g., 20)"
+            placeholder={form.discountType === 'percent' ? 'Discount % (e.g., 20)' : 'Fixed amount off (e.g., 5)'}
             type="number"
             className="px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500/50 focus:ring-2 focus:ring-yellow-500/20 transition-all"
             value={form.discount}
             onChange={e => setForm({ ...form, discount: e.target.value })}
           />
+          <select
+            value={form.discountType}
+            onChange={e => setForm({ ...form, discountType: e.target.value })}
+            className="px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none focus:border-yellow-500/50"
+          >
+            <option value="percent" className="bg-gray-900">Percentage off</option>
+            <option value="fixed" className="bg-gray-900">Fixed $ off</option>
+          </select>
+          <select
+            value={form.scopeType}
+            onChange={e => setForm({ ...form, scopeType: e.target.value, scopeIds: [] })}
+            className="px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none focus:border-yellow-500/50 md:col-span-2"
+          >
+            <option value="all" className="bg-gray-900">All products (store-wide)</option>
+            <option value="products" className="bg-gray-900">Specific products only</option>
+            <option value="categories" className="bg-gray-900">Specific categories only</option>
+          </select>
+          {form.scopeType === 'products' && (
+            <div className="md:col-span-2 max-h-40 overflow-y-auto rounded-xl border border-white/10 bg-black/30 p-3 space-y-1">
+              {products.map(p => (
+                <label key={p.id} className="flex items-center gap-2 text-sm text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={form.scopeIds.includes(p.id)}
+                    onChange={e => {
+                      setForm(f => ({
+                        ...f,
+                        scopeIds: e.target.checked
+                          ? [...f.scopeIds, p.id]
+                          : f.scopeIds.filter(id => id !== p.id),
+                      }))
+                    }}
+                  />
+                  {p.name}
+                </label>
+              ))}
+            </div>
+          )}
+          {form.scopeType === 'categories' && (
+            <div className="md:col-span-2 max-h-40 overflow-y-auto rounded-xl border border-white/10 bg-black/30 p-3 space-y-1">
+              {categories.map(c => (
+                <label key={c.id} className="flex items-center gap-2 text-sm text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={form.scopeIds.includes(c.id)}
+                    onChange={e => {
+                      setForm(f => ({
+                        ...f,
+                        scopeIds: e.target.checked
+                          ? [...f.scopeIds, c.id]
+                          : f.scopeIds.filter(id => id !== c.id),
+                      }))
+                    }}
+                  />
+                  {c.name}
+                </label>
+              ))}
+            </div>
+          )}
           <input
             placeholder="Expires (optional)"
             type="datetime-local"
@@ -167,6 +241,7 @@ export default function DiscountsPage() {
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Code</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Discount</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Scope</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Expires</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Usage</th>
                 <th className="px-6 py-4 text-right text-sm font-medium text-gray-400">Actions</th>
@@ -175,7 +250,7 @@ export default function DiscountsPage() {
             <tbody className="divide-y divide-white/5">
               {codes.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
                     <Box className="w-12 h-12 mx-auto mb-3 text-gray-500" />
                     <p>No discount codes yet.</p>
                   </td>
@@ -184,7 +259,12 @@ export default function DiscountsPage() {
                 codes.map(code => (
                   <tr key={code.id} className="hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 font-bold text-yellow-400">{code.code}</td>
-                    <td className="px-6 py-4 text-emerald-400">{code.discount}%</td>
+                    <td className="px-6 py-4 text-emerald-400">
+                      {code.discountType === 'fixed' ? `$${code.discount}` : `${code.discount}%`}
+                    </td>
+                    <td className="px-6 py-4 text-xs text-gray-400 capitalize">
+                      {code.scopeType || 'all'}
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-400">
                       {code.expiresAt ? new Date(code.expiresAt).toLocaleDateString() : 'Never'}
                     </td>

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import Link from 'next/link'
 import { ShoppingBag, Ticket, Shield, ArrowRight, CheckCircle, XCircle, TrendingUp, Clock, User, Star, Box, Gift } from 'lucide-react'
 import { UnreadBadge } from '@/components/ui/UnreadBadge'
+import { EmailVerifyBanner } from '@/components/dashboard/EmailVerifyBanner'
 
 export default async function DashboardPage() {
   const session = await getServerSession()
@@ -29,7 +30,7 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-[#0a0a0f] text-white selection:bg-purple-500 selection:text-white py-12">
       <div className="container mx-auto px-4 max-w-6xl relative z-10">
         
-        <div className="fixed inset-0 z-0">
+        <div className="fixed inset-0 z-0 pointer-events-none">
           <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-emerald-600/10 rounded-full blur-3xl"></div>
           <div className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-teal-600/10 rounded-full blur-3xl"></div>
         </div>
@@ -46,6 +47,8 @@ export default async function DashboardPage() {
             {new Date().toLocaleString()}
           </div>
         </div>
+
+        {!user.isVerified && <EmailVerifyBanner />}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-emerald-500/30 transition-all hover:scale-[1.02]">
@@ -77,7 +80,7 @@ export default async function DashboardPage() {
             </div>
             <p className="text-lg font-bold">{user.isVerified ? 'Verified' : 'Unverified'}</p>
             {!user.isVerified && (
-              <p className="text-xs text-red-400 mt-1">Verify your email</p>
+              <p className="text-xs text-amber-400 mt-1">Optional — verify anytime</p>
             )}
           </div>
 

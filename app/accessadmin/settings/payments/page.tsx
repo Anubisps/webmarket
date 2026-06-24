@@ -7,15 +7,10 @@ export default async function PaymentsSettingsPage() {
   const session = await getServerSession()
   if (!session?.user?.email) redirect('/login')
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email }
-  })
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
+  if (!user || !['admin', 'manager'].includes(user.role)) redirect('/dashboard')
 
-  if (!user || !['admin', 'manager'].includes(user.role)) {
-    redirect('/dashboard')
-  }
+  const settings = await prisma.paymentSetting.findMany({ orderBy: { sortOrder: 'asc' } })
 
-  const settings = await prisma.paymentSetting.findMany()
-
-  return <PaymentSettingsUI initialSettings={settings} />
+  return <PaymentSettingsUI initialSettings={settings as any} />
 }

@@ -258,14 +258,19 @@ model BundleItem {
 }
 
 model PaymentSetting {
-  id        String   @id @default(cuid())
-  method    String   @unique
-  enabled   Boolean  @default(false)
-  label     String
-  instructions String?
-  walletAddress String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  method         String   @unique
+  enabled        Boolean  @default(false)
+  label          String
+  instructions   String?
+  walletAddress  String?
+  mode           String   @default("manual")
+  config         Json?
+  testMode       Boolean  @default(false)
+  supportsAuto   Boolean  @default(false)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model SiteSetting {
@@ -280,14 +285,17 @@ model SiteSetting {
 }
 
 model Discount {
-  id          String    @id @default(cuid())
-  code        String    @unique
-  discount    Float
-  expiresAt   DateTime?
-  usageLimit  Int?
-  usageCount  Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  code         String    @unique
+  discount     Float
+  discountType String    @default("percent")
+  scopeType    String    @default("all")
+  scopeIds     Json?
+  expiresAt    DateTime?
+  usageLimit   Int?
+  usageCount   Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 model Affiliate {

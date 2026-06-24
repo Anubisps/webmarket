@@ -21,16 +21,19 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { code, discount, expiresAt, usageLimit } = await request.json()
+    const { code, discount, discountType, scopeType, scopeIds, expiresAt, usageLimit } = await request.json()
 
     const discountRecord = await prisma.discount.update({
       where: { id },
       data: {
-        code,
+        code: code.toUpperCase(),
         discount: parseFloat(discount),
+        discountType: discountType || 'percent',
+        scopeType: scopeType || 'all',
+        scopeIds: scopeIds?.length ? scopeIds : null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
-        usageLimit: usageLimit ? parseInt(usageLimit) : null
-      }
+        usageLimit: usageLimit ? parseInt(usageLimit) : null,
+      },
     })
 
     return NextResponse.json(discountRecord)

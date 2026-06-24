@@ -1,13 +1,23 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Sparkles, User, Mail, Lock, ArrowRight, CheckCircle, XCircle } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import toast from 'react-hot-toast'
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center text-white">Loading...</div>}>
+      <RegisterForm />
+    </Suspense>
+  )
+}
+
+function RegisterForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const referralCode = searchParams.get('ref') || ''
   const { data: session, status } = useSession()
   const [form, setForm] = useState({ username: '', email: '', password: '' })
   const [error, setError] = useState('')
@@ -31,7 +41,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify({ ...form, referralCode: referralCode || undefined })
       })
 
       if (res.ok) {

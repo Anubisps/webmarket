@@ -22,7 +22,7 @@ export async function PUT(
     }
 
     const { priority } = await request.json()
-    const validPriorities = ['low', 'medium', 'high']
+    const validPriorities = ['low', 'medium', 'high', 'urgent']
     if (!validPriorities.includes(priority)) {
       return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
     }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
+import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 
 export async function GET() {
   try {
@@ -16,63 +17,54 @@ export async function GET() {
           include: {
             referrals: {
               include: {
-                order: {
-                  select: {
-                    id: true,
-                    total: true,
-                    createdAt: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                order: { select: { id: true, total: true, createdAt: true } },
+              },
+            },
+          },
+        },
+      },
     })
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Create affiliate if not exists
-    if (!user.affiliate) {
-      const code = 'REF' + Math.random().toString(36).substr(2, 8).toUpperCase()
-      await prisma.affiliate.create({
-        data: {
-          userId: user.id,
-          code
-        }
+    let affiliate = user.affiliate
+    if (!affiliate) {
+      const code = 'REF' + Math.random().toString(36).substring(2, 10).toUpperCase()
+      affiliate = await prisma.affiliate.create({
+        data: { userId: user.id, code },
+        include: {
+          referrals: {
+            include: {
+              order: { select: { id: true, total: true, createdAt: true } },
+            },
+          },
+        },
       })
     }
 
-    // Fetch referred users separately
     const referredUsers = await prisma.user.findMany({
-      where: {
-        referredBy: user.id
-      },
-      include: {
-        orders: {
-          select: {
-            id: true,
-            total: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      where: { referredBy: user.id },
+      include: { orders: { select: { id: true, total: true } } },
+      orderBy: { createdAt: 'desc' },
     })
 
-    const affiliate = user.affiliate!
     const totalEarnings = affiliate.referrals.reduce((sum, r) => sum + r.commission, 0)
     const totalReferrals = affiliate.referrals.length
     const totalReferredUsers = referredUsers.length
     const totalPurchased = referredUsers.filter(u => u.orders.length > 0).length
     const totalPending = totalReferredUsers - totalPurchased
-    const referralLink = `https://windvault.store/register?ref=${affiliate.code}`
+    const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://windvault.store'
+    const referralLink = `${base}/register?ref=${affiliate.code}`
 
     return NextResponse.json({
-      affiliate,
+      affiliate: {
+        id: affiliate.id,
+        code: affiliate.code,
+        commission: affiliate.commission,
+        balance: affiliate.balance,
+      },
       referredUsers,
       totalEarnings,
       totalReferrals,
@@ -80,7 +72,7 @@ export async function GET() {
       totalPurchased,
       totalPending,
       referralLink,
-      balance: affiliate.balance // ✅ Include balance so user sees admin adjustments
+      balance: affiliate.balance,
     })
   } catch (error) {
     console.error('Error fetching affiliate data:', error)

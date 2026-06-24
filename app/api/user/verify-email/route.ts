@@ -31,17 +31,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid or expired verification code' }, { status: 400 })
     }
 
-    // Update email - using null directly
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        email: user.pendingEmail as string,
-        pendingEmail: null,
-        emailVerificationToken: null,
-        emailVerificationExpires: null,
-        isVerified: true
-      }
-    })
+    if (user.pendingEmail) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          email: user.pendingEmail,
+          pendingEmail: null,
+          emailVerificationToken: null,
+          emailVerificationExpires: null,
+          isVerified: true,
+        },
+      })
+    } else {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerificationToken: null,
+          emailVerificationExpires: null,
+          isVerified: true,
+        },
+      })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

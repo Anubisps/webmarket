@@ -88,12 +88,15 @@ export default function CheckoutUI({
       const res = await fetch('/api/checkout/verify-discount', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: discountCode.trim() })
+        body: JSON.stringify({ code: discountCode.trim(), productId })
       })
       const data = await res.json()
       if (res.ok && data.valid) {
         setDiscountApplied({ amount: data.discount, code: discountCode.trim() })
-        toast.success(`✅ Discount applied: ${data.discount} USDC off!`)
+        const label = data.discountType === 'percent'
+          ? `${data.rawDiscount}% off`
+          : `$${data.discount.toFixed(2)} off`
+        toast.success(`Discount applied: ${label}`)
       } else {
         setDiscountApplied(null)
         setDiscountError(data.error || 'Invalid discount code')
