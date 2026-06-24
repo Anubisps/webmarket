@@ -409,4 +409,12 @@ model AnalyticsEvent {
   eventType  String   @default("pageview")
   element    String?
   extra      Json?
+  userId     String?
+  username   String?
+  isLoggedIn Boolean  @default(false)
+
+  @@index([sessionId])
+  @@index([timestamp])
+  @@index([userId])
+  @@index([isLoggedIn])
 }

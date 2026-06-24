@@ -137,10 +137,11 @@ export default function ManageUserPage() {
     })
 
     if (res.ok) {
-      toast.success('User updated successfully')
-      setTimeout(() => {
-        router.push('/accessadmin/users')
-      }, 500)
+      const updated = await res.json()
+      setUser(updated)
+      setEditForm({ username: updated.username, email: updated.email })
+      setEditMode(false)
+      toast.success('Profile updated successfully')
     } else {
       const data = await res.json()
       setError(data.error || 'Failed to update user')
@@ -190,6 +191,7 @@ export default function ManageUserPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       
+      {/* ===== HEADER ===== */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
         <div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-4">
@@ -210,9 +212,11 @@ export default function ManageUserPage() {
         </Link>
       </div>
 
+      {/* ===== ALERTS ===== */}
       {success && <p className="text-emerald-400 mb-4">{success}</p>}
       {error && <p className="text-red-400 mb-4">{error}</p>}
 
+      {/* ===== USER INFO CARD ===== */}
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 mb-6">
         <div className="flex items-center gap-3 mb-6">
           <Box className="w-5 h-5 text-purple-400" />
@@ -282,6 +286,7 @@ export default function ManageUserPage() {
         </div>
       </div>
 
+      {/* ===== ACTIONS CARD ===== */}
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 mb-6">
         <div className="flex items-center gap-3 mb-6">
           <Shield className="w-5 h-5 text-cyan-400" />
@@ -331,6 +336,7 @@ export default function ManageUserPage() {
         </div>
       </div>
 
+      {/* ===== EDIT PROFILE FORM ===== */}
       {editMode && (
         <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 mb-6">
           <div className="flex items-center gap-3 mb-6">
@@ -369,6 +375,7 @@ export default function ManageUserPage() {
         </div>
       )}
 
+      {/* ===== CHANGE ROLE CARD ===== */}
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8">
         <div className="flex items-center gap-3 mb-6">
           <Shield className="w-5 h-5 text-purple-400" />

@@ -18,11 +18,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const { subject, message, orderId } = await request.json()
+    const { subject, message, orderId, priority, category } = await request.json()
 
     if (!subject || !message) {
       return NextResponse.json({ error: 'Subject and message are required' }, { status: 400 })
     }
+
+    const validPriorities = ['low', 'medium', 'high', 'urgent']
+    const ticketPriority = validPriorities.includes(priority) ? priority : 'medium'
+    const categoryLabel = typeof category === 'string' && category.trim() ? category.trim() : ''
+    const finalSubject = categoryLabel && !subject.startsWith('[')
+      ? `[${categoryLabel}] ${subject.trim()}`
+      : subject.trim()
 
     // If orderId is provided, check if a ticket already exists for this order
     if (orderId) {
@@ -44,10 +51,10 @@ export async function POST(request: Request) {
     const ticket = await prisma.ticket.create({
       data: {
         userId: user.id,
-        subject: subject.trim(),
+        subject: finalSubject,
         message: message.trim(),
         status: 'open',
-        priority: 'medium',
+        priority: ticketPriority,
         orderId: orderId || null
       },
       include: {

@@ -27,6 +27,7 @@ export async function GET(
         userId: user.id
       },
       include: {
+        user: { select: { id: true, username: true } },
         replies: {
           include: {
             user: {
