@@ -3,6 +3,13 @@ import { useState, useEffect, useRef } from 'react'
 import { MessageCircle, Sparkles, Box, User, Send, Clock, ArrowLeft, XCircle, Trash2, Globe, Activity, Bell, CheckCircle, CheckCheck, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { LiveChatMessageBody } from '@/components/chat/LiveChatMessageBody'
+import {
+  alertLiveChatReply,
+  initLiveChatTabTitle,
+  resetLiveChatTabTitle,
+  setupLiveChatTabReset,
+  unlockLiveChatAudio,
+} from '@/lib/livechatNotifications'
 
 interface ChatSession {
   id: string
@@ -32,11 +39,29 @@ export default function AdminLiveChatPage() {
   const lastMessageIdRef = useRef<Record<string, string>>({})
   const selectedIdRef = useRef<string | null>(null)
   const didAutoSelectRef = useRef(false)
+  const prevUnreadBySessionRef = useRef<Record<string, number>>({})
+  const sessionsInitializedRef = useRef(false)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     selectedIdRef.current = selectedId
   }, [selectedId])
+
+  useEffect(() => {
+    initLiveChatTabTitle('Live Chat — WindVault Admin')
+    const cleanup = setupLiveChatTabReset()
+    return cleanup
+  }, [])
+
+  useEffect(() => {
+    const unlock = () => unlockLiveChatAudio()
+    window.addEventListener('click', unlock, { once: true })
+    window.addEventListener('keydown', unlock, { once: true })
+    return () => {
+      window.removeEventListener('click', unlock)
+      window.removeEventListener('keydown', unlock)
+    }
+  }, [])
 
   const scrollMessagesToBottom = () => {
     const container = messagesContainerRef.current
@@ -67,6 +92,22 @@ export default function AdminLiveChatPage() {
 
       setActiveSessions(activeData)
       setClosedSessions(closedData)
+
+      if (sessionsInitializedRef.current) {
+        for (const session of activeData) {
+          const previousUnread = prevUnreadBySessionRef.current[session.id] || 0
+          if (session.unreadCount > previousUnread && session.id !== selectedIdRef.current) {
+            alertLiveChatReply(`Message from ${session.visitorName || 'Guest'}`)
+            break
+          }
+        }
+      } else {
+        sessionsInitializedRef.current = true
+      }
+
+      prevUnreadBySessionRef.current = Object.fromEntries(
+        activeData.map((session: ChatSession) => [session.id, session.unreadCount])
+      )
     } catch (err) {
       console.error('Failed to load sessions:', err)
     } finally {
@@ -103,6 +144,7 @@ export default function AdminLiveChatPage() {
     setSelectedId(sessionId)
     setMessages([])
     delete lastMessageIdRef.current[sessionId]
+    resetLiveChatTabTitle()
   }
 
   const sendMessage = async () => {
@@ -202,6 +244,11 @@ export default function AdminLiveChatPage() {
       })
       const data = await res.json()
       if (data.messages && data.messages.length > 0) {
+        const visitorMessages = data.messages.filter((msg: { sender: string }) => msg.sender === 'visitor')
+        if (visitorMessages.length > 0) {
+          alertLiveChatReply('New visitor reply')
+        }
+
         lastMessageIdRef.current[selectedId] = data.messages[data.messages.length - 1].id
         setMessages(prev => [...prev, ...data.messages])
       }

@@ -16,7 +16,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (status === 'loading') return
 
-    // ✅ Add all public routes here
     const publicPages = [
       '/',
       '/products',
@@ -28,7 +27,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       '/privacy',
       '/terms',
       '/forgot-password',
-      '/reset-password'      // allows any /reset-password/* subpath
+      '/reset-password'
     ]
 
     const isPublicPage = publicPages.some(page => 
@@ -54,14 +53,16 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     }
   }, [status, pathname, router])
 
+  const hideLiveChat = pathname?.startsWith('/accessadmin')
+
   return (
     <>
-      <LiveChatWidget />
       <Header />
       <main className="min-h-screen flex flex-col">
         <div className="flex-grow">{children}</div>
       </main>
       <Footer />
+      {!hideLiveChat && <LiveChatWidget />}
     </>
   )
 }

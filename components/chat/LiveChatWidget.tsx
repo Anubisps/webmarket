@@ -4,6 +4,13 @@ import { MessageCircle, X, Send, User, Mail, Sparkles, Phone, XCircle, AlertCirc
 import { useSession } from 'next-auth/react'
 import toast from 'react-hot-toast'
 import { LiveChatMessageBody } from '@/components/chat/LiveChatMessageBody'
+import {
+  alertLiveChatReply,
+  initLiveChatTabTitle,
+  resetLiveChatTabTitle,
+  setupLiveChatTabReset,
+  unlockLiveChatAudio,
+} from '@/lib/livechatNotifications'
 
 export function LiveChatWidget() {
   const { data: session } = useSession()
@@ -27,6 +34,32 @@ export function LiveChatWidget() {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [isTyping, setIsTyping] = useState(false)
   const [visitorId, setVisitorId] = useState<string | null>(null)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const isOpenRef = useRef(false)
+
+  useEffect(() => {
+    isOpenRef.current = isOpen
+    if (isOpen) {
+      setUnreadCount(0)
+      resetLiveChatTabTitle()
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    initLiveChatTabTitle('WindVault Market')
+    const cleanup = setupLiveChatTabReset()
+    return cleanup
+  }, [])
+
+  useEffect(() => {
+    const unlock = () => unlockLiveChatAudio()
+    window.addEventListener('click', unlock, { once: true })
+    window.addEventListener('keydown', unlock, { once: true })
+    return () => {
+      window.removeEventListener('click', unlock)
+      window.removeEventListener('keydown', unlock)
+    }
+  }, [])
 
   // Load or generate visitor ID on client side only
   useEffect(() => {
@@ -213,6 +246,20 @@ export function LiveChatWidget() {
       if (data.messages && data.messages.length > 0) {
         const newMessages = data.messages.filter((msg: any) => !processedMessageIds.current.has(msg.id))
         if (newMessages.length > 0) {
+          const fromAdmin = newMessages.filter(
+            (msg: any) =>
+              msg.sender === 'admin' &&
+              !String(msg.message || '').startsWith('👋 Welcome')
+          )
+          if (fromAdmin.length > 0) {
+            if (!isOpenRef.current) {
+              setUnreadCount(prev => prev + fromAdmin.length)
+            }
+            if (!isOpenRef.current || (typeof document !== 'undefined' && document.hidden)) {
+              alertLiveChatReply('New support reply')
+            }
+          }
+
           newMessages.forEach((msg: any) => processedMessageIds.current.add(msg.id))
           lastMessageIdRef.current = newMessages[newMessages.length - 1].id
           setMessages(prev => [...prev, ...newMessages])
@@ -406,30 +453,52 @@ export function LiveChatWidget() {
     }).catch(() => {})
   }, [isOpen, visitorId, sessionId, session?.user?.id, session?.user?.username, session?.user?.email])
 
-  // Polling interval
+  // Poll for new messages even when chat bubble is minimized
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
-    if (isOpen && sessionId && !isEnded) {
+    if (sessionId && !isEnded) {
       interval = setInterval(pollMessages, 1000)
     }
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [isOpen, sessionId, isEnded])
+  }, [sessionId, isEnded])
+
+  const chatFixedStyle = {
+    position: 'fixed' as const,
+    bottom: '2rem',
+    right: '2rem',
+    zIndex: 9990,
+  }
 
   if (!isOpen) {
     return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:scale-105 hover:shadow-[0_0_50px_rgba(168,85,247,0.5)] transition-all"
-      >
-        <MessageCircle className="w-6 h-6" />
-      </button>
+      <div style={chatFixedStyle} className="fixed bottom-8 right-8 z-[9990]">
+        <button
+          onClick={() => setIsOpen(true)}
+          aria-label="Open live chat"
+          className="group relative flex items-center gap-2.5 rounded-full bg-gradient-to-br from-purple-600 via-fuchsia-600 to-pink-600 px-5 py-4 text-white shadow-[0_8px_32px_rgba(168,85,247,0.45)] ring-2 ring-purple-400/50 ring-offset-2 ring-offset-transparent hover:scale-110 hover:shadow-[0_12px_48px_rgba(236,72,153,0.55)] transition-all duration-300"
+        >
+          <span className="pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 opacity-30 blur-md group-hover:opacity-50 transition-opacity" />
+          <span className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
+            <MessageCircle className="h-7 w-7" strokeWidth={2.25} />
+          </span>
+          <span className="relative hidden pr-1 text-sm font-bold tracking-wide sm:inline">Live Chat</span>
+          {unreadCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-[#0a0a0f] bg-red-500 px-1.5 text-[11px] font-bold text-white animate-pulse">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </button>
+      </div>
     )
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-96 max-w-[90vw] h-[600px] max-h-[90vh] bg-[#0a0a0f] border border-white/10 rounded-2xl shadow-[0_0_60px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden animate-fade-in-up">
+    <div
+      style={chatFixedStyle}
+      className="fixed bottom-8 right-8 z-[9990] w-[26rem] max-w-[92vw] h-[620px] max-h-[90vh] bg-[#0a0a0f] border border-purple-500/20 rounded-2xl shadow-[0_0_80px_rgba(168,85,247,0.25)] flex flex-col overflow-hidden animate-fade-in-up"
+    >
       <div className="p-4 bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
