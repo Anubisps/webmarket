@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db'
+import { isProductPubliclyAvailable } from '@/lib/activeProduct'
 import { notFound } from 'next/navigation'
 import { 
   ArrowLeft, 
@@ -27,7 +28,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     }
   })
 
-  if (!product) {
+  if (!product || !isProductPubliclyAvailable(product)) {
     notFound()
   }
 

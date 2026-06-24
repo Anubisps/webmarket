@@ -52,6 +52,9 @@ export default function EditProductPage() {
     productNote: '',
     customDelivery: '',
     customNote: '',
+    enableUsernameFetch: 'inherit' as 'inherit' | 'true' | 'false',
+    fetchProvider: 'wherewindsmeet',
+    gameIdLabel: '',
   })
   const [productImage, setProductImage] = useState<string>('')
   const [uploading, setUploading] = useState(false)
@@ -92,6 +95,9 @@ export default function EditProductPage() {
           productNote: data.productNote || '',
           customDelivery: data.customDelivery || '',
           customNote: data.customNote || '',
+          enableUsernameFetch: data.enableUsernameFetch === true ? 'true' : data.enableUsernameFetch === false ? 'false' : 'inherit',
+          fetchProvider: data.fetchProvider || 'wherewindsmeet',
+          gameIdLabel: data.gameIdLabel || '',
         })
         setProductImage(data.images && data.images.length > 0 ? data.images[0] : '')
         setLoadError(false)
@@ -136,6 +142,9 @@ export default function EditProductPage() {
           productNote: form.productNote,
           customDelivery: form.customDelivery,
           customNote: form.customNote,
+          enableUsernameFetch: form.enableUsernameFetch,
+          fetchProvider: form.fetchProvider,
+          gameIdLabel: form.gameIdLabel || null,
         })
       })
 
@@ -377,6 +386,32 @@ export default function EditProductPage() {
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
+          </div>
+
+          <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-4 space-y-3">
+            <h3 className="font-bold text-purple-300">Checkout Game ID Settings</h3>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-400">Username fetch</label>
+              <select
+                className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white"
+                value={form.enableUsernameFetch}
+                onChange={e => setForm({ ...form, enableUsernameFetch: e.target.value as 'inherit' | 'true' | 'false' })}
+              >
+                <option value="inherit">Inherit from category</option>
+                <option value="true">Enabled (fetch username)</option>
+                <option value="false">Disabled (ID only)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-400">Custom ID field label (optional)</label>
+              <input
+                type="text"
+                placeholder="Leave blank to inherit from category"
+                className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white"
+                value={form.gameIdLabel}
+                onChange={e => setForm({ ...form, gameIdLabel: e.target.value })}
+              />
+            </div>
           </div>
 
           {/* Active & Limited */}

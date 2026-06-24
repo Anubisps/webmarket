@@ -108,9 +108,15 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 <div className="bg-black/30 rounded-xl p-3 border border-white/5">
                   <p className="text-xs text-gray-400 flex items-center gap-1">
-                    <User className="w-3 h-3" /> IGN
+                    <User className="w-3 h-3" /> Game ID
                   </p>
-                  <p className="text-sm font-medium">{order.ign || 'Not provided'}</p>
+                  <p className="text-sm font-medium font-mono">{order.ign || 'Not provided'}</p>
+                </div>
+                <div className="bg-black/30 rounded-xl p-3 border border-white/5">
+                  <p className="text-xs text-gray-400 flex items-center gap-1">
+                    <User className="w-3 h-3" /> In-Game Username
+                  </p>
+                  <p className="text-sm font-medium">{order.ignUsername || 'Not fetched'}</p>
                 </div>
                 <div className="bg-black/30 rounded-xl p-3 border border-white/5">
                   <p className="text-xs text-gray-400 flex items-center gap-1">
@@ -134,6 +140,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   )}
                 </div>
               </div>
+
+              {order.paymentStatus === 'pending' && (
+                <div className="bg-amber-500/10 rounded-xl p-4 border border-amber-500/30 mb-4">
+                  <p className="text-sm text-amber-200 leading-relaxed">
+                    If you used a manual payment method, please contact our staff through <strong>Live Chat</strong> or open a <strong>Support Ticket</strong> with your payment proof so we can confirm your order.
+                  </p>
+                </div>
+              )}
 
               {order.staffNote && (
                 <div className="bg-blue-500/10 rounded-xl p-3 border border-blue-500/20">
@@ -182,9 +196,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 )}
                 <Link
                   href={`/api/invoices/${order.id}`}
-                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition"
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] transition"
                 >
-                  <Download className="w-4 h-4" /> Invoice
+                  <Download className="w-4 h-4" /> Download Invoice
                 </Link>
               </div>
             </div>

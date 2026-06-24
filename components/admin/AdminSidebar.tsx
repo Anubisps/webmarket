@@ -20,6 +20,7 @@ import {
   LogOut
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
+import { UnreadBadge } from '@/components/ui/UnreadBadge'
 
 export function AdminSidebar() {
   const pathname = usePathname()
@@ -67,8 +68,11 @@ export function AdminSidebar() {
                     : 'text-gray-400 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <item.icon className="w-5 h-5" />
-                <span className="text-sm font-medium">{item.label}</span>
+                <item.icon className="w-5 h-5 shrink-0" />
+                <span className="text-sm font-medium flex-1">{item.label}</span>
+                {item.href === '/accessadmin/tickets' && (
+                  <UnreadBadge prefix="/accessadmin/tickets" />
+                )}
               </Link>
             )
           })}

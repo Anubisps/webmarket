@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
+import { notifyStaffTicketReply } from '@/lib/notifications'
 
 export async function POST(
   request: Request,
@@ -47,6 +48,12 @@ export async function POST(
         userId: user.id,
         message: message.trim()
       }
+    })
+
+    await notifyStaffTicketReply({
+      id: ticket.id,
+      subject: ticket.subject,
+      user: { username: user.username },
     })
 
     const updatedTicket = await prisma.ticket.findUnique({

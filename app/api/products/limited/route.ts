@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { publicProductWhere } from '@/lib/activeProduct'
 
 export async function GET() {
   try {
     const products = await prisma.product.findMany({
       where: {
-        isActive: true,
+        ...publicProductWhere,
         isLimited: true,
         endDate: { gt: new Date() },
       },

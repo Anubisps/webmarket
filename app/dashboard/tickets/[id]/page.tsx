@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { ArrowLeft, Calendar, User, MessageSquare, CheckCircle, Clock, XCircle, AlertCircle, Package } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useMarkNotificationsRead } from '@/components/ui/UnreadBadge'
 
 export default function TicketDetailPage() {
   const router = useRouter()
@@ -33,6 +34,8 @@ export default function TicketDetailPage() {
   useEffect(() => {
     loadTicket()
   }, [id])
+
+  useMarkNotificationsRead(`/dashboard/tickets/${id}`)
 
   const submitReply = async (e: React.FormEvent) => {
     e.preventDefault()

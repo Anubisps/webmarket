@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
+import { isProductPubliclyAvailable } from '@/lib/activeProduct'
 import { paymentProviders } from '@/lib/payments'
 import { sendOrderConfirmation } from '@/lib/email'
 import { rateLimit } from '@/lib/security/rateLimit'
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'CSRF token invalid' }, { status: 403 })
     }
 
-    const { productId, providerId, userId, ign, contactEmail, discountCode, referralCode } = await request.json()
+    const { productId, providerId, userId, ign, ignUsername, contactEmail, discountCode, referralCode } = await request.json()
 
     if (userId !== user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
       where: { id: productId }
     })
 
-    if (!product || product.stock < 1) {
+    if (!product || !isProductPubliclyAvailable(product) || product.stock < 1) {
       return NextResponse.json({ error: 'Product unavailable' }, { status: 400 })
     }
 
@@ -84,6 +85,7 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         ign: ign || null,
+        ignUsername: ignUsername || null,
         contactEmail: contactEmail || null,
         total: total,
         discountAmount: discountAmount > 0 ? discountAmount : null,

@@ -4,7 +4,7 @@ const prisma = new PrismaClient()
 
 async function main() {
   const categories = [
-    { name: 'Where Winds Meet', slug: 'where-winds-meet' },
+    { name: 'Where Winds Meet', slug: 'where-winds-meet', enableUsernameFetch: true, fetchProvider: 'wherewindsmeet', gameIdLabel: 'In-Game ID' },
     { name: 'Palmon Survival', slug: 'palmon-survival' },
     { name: 'Echo Pearls', slug: 'echo-pearls' },
     { name: 'Custom Bars', slug: 'custom-bars' },
@@ -14,8 +14,18 @@ async function main() {
   for (const cat of categories) {
     await prisma.category.upsert({
       where: { slug: cat.slug },
-      update: {},
-      create: cat
+      update: {
+        enableUsernameFetch: cat.enableUsernameFetch ?? false,
+        fetchProvider: cat.fetchProvider ?? null,
+        gameIdLabel: cat.gameIdLabel ?? null,
+      },
+      create: {
+        name: cat.name,
+        slug: cat.slug,
+        enableUsernameFetch: cat.enableUsernameFetch ?? false,
+        fetchProvider: cat.fetchProvider ?? null,
+        gameIdLabel: cat.gameIdLabel ?? null,
+      }
     })
   }
   console.log('✅ Categories seeded.')

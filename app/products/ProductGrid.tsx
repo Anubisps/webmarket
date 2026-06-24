@@ -12,7 +12,7 @@ export function ProductGrid() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedCategoryId, setSelectedCategoryId] = useState('')
-  const [sort, setSort] = useState('newest')
+  const [sort, setSort] = useState('featured')
   const [searchInput, setSearchInput] = useState('')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   
@@ -21,7 +21,7 @@ export function ProductGrid() {
   useEffect(() => {
     const searchParam = searchParams?.get('search') || ''
     const categoryParam = searchParams?.get('categoryId') || ''
-    const sortParam = searchParams?.get('sort') || 'newest'
+    const sortParam = searchParams?.get('sort') || 'featured'
     setSearch(searchParam)
     setSelectedCategoryId(categoryParam)
     setSort(sortParam)
@@ -103,12 +103,13 @@ export function ProductGrid() {
     setSelectedCategoryId('')
     setSearch('')
     setSearchInput('')
-    setSort('newest')
+    setSort('featured')
     router.push('/products', { scroll: false })
   }
 
   const sortOptions = [
-    { value: 'newest', label: 'Newest' },
+    { value: 'featured', label: 'Featured Order' },
+    { value: 'newest', label: 'Admin Order' },
     { value: 'price_low', label: 'Price: Low → High' },
     { value: 'price_high', label: 'Price: High → Low' }
   ]

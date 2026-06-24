@@ -6,6 +6,7 @@ import { useSettings } from '@/context/SettingsContext'
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown'
 import { Menu, X, Home, ShoppingBag, Info, HelpCircle, Mail, LayoutDashboard } from 'lucide-react'
 import { useState } from 'react'
+import { UnreadBadge } from '@/components/ui/UnreadBadge'
 
 export function Header() {
   const { data: session, status } = useSession()
@@ -63,10 +64,11 @@ export function Header() {
             <div className="flex items-center gap-3">
               <Link
                 href="/dashboard"
-                className="px-4 py-2 rounded-lg bg-white text-indigo-900 font-semibold hover:scale-105 transition flex items-center gap-2"
+                className="relative px-4 py-2 rounded-lg bg-white text-indigo-900 font-semibold hover:scale-105 transition flex items-center gap-2"
               >
                 <LayoutDashboard className="w-4 h-4" />
                 Dashboard
+                <UnreadBadge className="absolute -top-1 -right-1" />
               </Link>
               {isAdmin && (
                 <Link

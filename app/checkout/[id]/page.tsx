@@ -1,6 +1,8 @@
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
+import { isProductPubliclyAvailable } from '@/lib/activeProduct'
+import { resolveGameIdSettings } from '@/lib/checkoutGameId'
 import CheckoutUI from './CheckoutUI'
 
 interface PaymentMethod {
@@ -22,12 +24,17 @@ export default async function CheckoutPage({ params }: { params: Promise<{ id: s
   if (!user) redirect('/login')
 
   const product = await prisma.product.findUnique({
-    where: { id }
+    where: { id },
+    include: {
+      category: true
+    }
   })
 
-  if (!product || product.stock < 1) {
+  if (!product || !isProductPubliclyAvailable(product) || product.stock < 1) {
     redirect('/products')
   }
+
+  const { fetchEnabled, fetchProvider, gameIdLabel } = resolveGameIdSettings(product)
 
   let methods: PaymentMethod[] = []
   try {
@@ -42,7 +49,6 @@ export default async function CheckoutPage({ params }: { params: Promise<{ id: s
     }))
   } catch (error) {
     console.error('Failed to load payment settings:', error)
-    // Fallback to an empty array
     methods = []
   }
 
@@ -63,6 +69,9 @@ export default async function CheckoutPage({ params }: { params: Promise<{ id: s
       price={product.price}
       methods={methods}
       userId={user.id}
+      fetchEnabled={fetchEnabled}
+      fetchProvider={fetchProvider}
+      gameIdLabel={gameIdLabel}
     />
   )
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { publicProductWhere } from '@/lib/activeProduct'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 
@@ -8,13 +9,13 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
     const categoryId = searchParams.get('categoryId') || ''
-    const sort = searchParams.get('sort') || 'newest'
+    const sort = searchParams.get('sort') || 'featured'
 
     const session = await getServerSession(authOptions)
     const userId = session?.user?.id
 
     // Build where clause – ✅ fixed to handle empty categoryId
-    const where: any = { isActive: true }
+    const where: any = { ...publicProductWhere }
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -26,9 +27,10 @@ export async function GET(request: Request) {
     }
 
     // Build orderBy
-    let orderBy: any = { createdAt: 'desc' }
+    let orderBy: any = { order: 'asc' }
     if (sort === 'price_low') orderBy = { price: 'asc' }
     if (sort === 'price_high') orderBy = { price: 'desc' }
+    if (sort === 'featured' || sort === 'newest') orderBy = { order: 'asc' }
 
     const products = await prisma.product.findMany({
       where,

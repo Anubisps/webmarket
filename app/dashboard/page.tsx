@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
 import { ShoppingBag, Ticket, Shield, ArrowRight, CheckCircle, XCircle, TrendingUp, Clock, User, Star, Box, Gift } from 'lucide-react'
+import { UnreadBadge } from '@/components/ui/UnreadBadge'
 
 export default async function DashboardPage() {
   const session = await getServerSession()
@@ -110,7 +111,8 @@ export default async function DashboardPage() {
             </div>
           </Link>
 
-          <Link href="/dashboard/tickets" className="group bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-blue-500/50 hover:shadow-[0_0_40px_rgba(59,130,246,0.1)] transition-all flex flex-col">
+          <Link href="/dashboard/tickets" className="group relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-blue-500/50 hover:shadow-[0_0_40px_rgba(59,130,246,0.1)] transition-all flex flex-col">
+            <UnreadBadge prefix="/dashboard/tickets" className="absolute top-4 right-4" />
             <div className="flex items-center gap-4 mb-3">
               <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500">
                 <Ticket className="w-6 h-6 text-white" />

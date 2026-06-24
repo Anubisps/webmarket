@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
+import { publicProductWhere } from '@/lib/activeProduct'
 import { 
   ArrowRight, Shield, Zap, Clock, Sparkles, ShoppingCart, 
   Star, Lock, CreditCard, Users, Flame, Gem, Rocket 
@@ -9,7 +10,7 @@ export default async function Home() {
   // Fetch only limited (event) products
   const limitedProducts = await prisma.product.findMany({
     where: {
-      isActive: true,
+      ...publicProductWhere,
       isLimited: true
     },
     include: {
@@ -17,7 +18,7 @@ export default async function Home() {
         select: { name: true }
       }
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { order: 'asc' },
     take: 4
   })
 

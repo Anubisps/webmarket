@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, CreditCard, User, Mail, ArrowRight, Loader2, Tag } from 'lucide-react'
+import { CheckCircle, CreditCard, User, Mail, ArrowRight, Loader2, Tag, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface PaymentMethod {
@@ -18,9 +18,21 @@ interface CheckoutUIProps {
   price: number
   methods: PaymentMethod[]
   userId: string
+  fetchEnabled: boolean
+  fetchProvider: string
+  gameIdLabel: string
 }
 
-export default function CheckoutUI({ productId, productName, price, methods, userId }: CheckoutUIProps) {
+export default function CheckoutUI({
+  productId,
+  productName,
+  price,
+  methods,
+  userId,
+  fetchEnabled,
+  fetchProvider,
+  gameIdLabel,
+}: CheckoutUIProps) {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState<string>('')
@@ -101,9 +113,9 @@ export default function CheckoutUI({ productId, productName, price, methods, use
   }
 
   useEffect(() => {
-    if (!mounted || !ign.trim() || !/^\d+$/.test(ign)) {
+    if (!mounted || !fetchEnabled || !ign.trim() || !/^\d+$/.test(ign)) {
       setIsFetching(false)
-      setFetchedUsername(null)
+      if (!fetchEnabled) setFetchedUsername(null)
       return
     }
 
@@ -115,7 +127,7 @@ export default function CheckoutUI({ productId, productName, price, methods, use
         const res = await fetch('/api/checkout/fetch-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: ign })
+          body: JSON.stringify({ userId: ign, provider: fetchProvider })
         })
         const data = await res.json()
         if (res.ok) {
@@ -136,7 +148,7 @@ export default function CheckoutUI({ productId, productName, price, methods, use
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current)
     }
-  }, [ign, mounted])
+  }, [ign, mounted, fetchEnabled, fetchProvider])
 
   const handlePlaceOrder = async () => {
     if (!selectedMethod) {
@@ -173,6 +185,7 @@ export default function CheckoutUI({ productId, productName, price, methods, use
           providerId: selectedMethod,
           userId,
           ign: ign.trim(),
+          ignUsername: fetchEnabled ? fetchedUsername : null,
           contactEmail: contactEmail.trim(),
           discountCode: discountApplied?.code || null,
           referralCode: null
@@ -212,6 +225,15 @@ export default function CheckoutUI({ productId, productName, price, methods, use
                   <h2 className="text-2xl font-bold">Order Created!</h2>
                   <p className="text-sm opacity-90">Order #{orderId.slice(0,8)}</p>
                 </div>
+              </div>
+            </div>
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-300 mb-1">Used a manual payment method?</p>
+                <p className="text-sm text-amber-100/90 leading-relaxed">
+                  Please contact our staff through <strong>Live Chat</strong> or open a <strong>Support Ticket</strong> with your payment proof so we can confirm and process your order as quickly as possible.
+                </p>
               </div>
             </div>
             <h2 className="text-2xl font-bold mb-4">{selectedMethodDetails.label}</h2>
@@ -278,34 +300,34 @@ export default function CheckoutUI({ productId, productName, price, methods, use
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1 flex items-center gap-2">
-                <User className="w-4 h-4" /> In-Game ID (numbers only)
+                <User className="w-4 h-4" /> {gameIdLabel}{fetchEnabled ? ' (numbers only)' : ''}
               </label>
               <input
                 type="text"
                 required
-                pattern="[0-9]*"
-                inputMode="numeric"
-                placeholder="e.g., 123456789"
+                pattern={fetchEnabled ? '[0-9]*' : undefined}
+                inputMode={fetchEnabled ? 'numeric' : 'text'}
+                placeholder={fetchEnabled ? 'e.g., 123456789' : 'Enter your player ID or IGN'}
                 className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
                 value={ign}
                 onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '')
+                  const value = fetchEnabled ? e.target.value.replace(/\D/g, '') : e.target.value
                   setIgn(value)
                 }}
               />
-              {isFetching && (
+              {fetchEnabled && isFetching && (
                 <div className="mt-1 flex items-center gap-2 text-sm text-purple-400">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Fetching username...
                 </div>
               )}
-              {fetchedUsername && !isFetching && (
+              {fetchEnabled && fetchedUsername && !isFetching && (
                 <div className="mt-1 text-sm text-emerald-400 flex items-center gap-1">
                   <CheckCircle className="w-4 h-4" />
                   Username: {fetchedUsername}
                 </div>
               )}
-              {fetchError && !isFetching && (
+              {fetchEnabled && fetchError && !isFetching && (
                 <div className="mt-1 text-sm text-red-400">
                   {fetchError}
                 </div>
@@ -389,14 +411,6 @@ export default function CheckoutUI({ productId, productName, price, methods, use
             </div>
 
             {error && <p className="text-red-400 text-sm">{error}</p>}
-
-            <div className="text-xs text-gray-400 p-3 bg-black/30 rounded-xl">
-              <p>Mounted: {mounted ? '✅' : '❌'}</p>
-              <p>CSRF Token: {csrfToken ? '✅ Present' : '❌ Missing'}</p>
-              <p>Selected Method: {selectedMethod || '❌ None'}</p>
-              <p>IGN: {ign || '❌ Empty'}</p>
-              <p>Email: {contactEmail || '❌ Empty'}</p>
-            </div>
 
             <button
               onClick={handlePlaceOrder}

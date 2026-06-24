@@ -2,8 +2,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle, Clock, XCircle, AlertCircle, User, Package, Sparkles, MessageSquare, Plus } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, XCircle, AlertCircle, User, Package, MessageSquare, Trash2, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useMarkNotificationsRead } from '@/components/ui/UnreadBadge'
 
 export default function ManageTicketPage() {
   const router = useRouter()
@@ -17,6 +18,7 @@ export default function ManageTicketPage() {
   const [replying, setReplying] = useState(false)
   const [staffList, setStaffList] = useState<any[]>([])
   const [assigning, setAssigning] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetch(`/api/admin/tickets/${id}`)
@@ -38,6 +40,8 @@ export default function ManageTicketPage() {
       .then(data => setStaffList(data))
       .catch(err => console.error('Failed to load staff:', err))
   }, [id])
+
+  useMarkNotificationsRead(`/accessadmin/tickets/${id}`)
 
   const updateStatus = async (status: string) => {
     setLoading(true)
@@ -114,6 +118,25 @@ export default function ManageTicketPage() {
     }
   }
 
+  const deleteTicket = async () => {
+    if (!confirm('Delete this ticket permanently? All replies will be removed.')) return
+    setDeleting(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/admin/tickets/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Ticket deleted')
+        router.push('/accessadmin/tickets')
+      } else {
+        toast.error('Failed to delete ticket')
+      }
+    } catch {
+      toast.error('Network error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const submitReply = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!replyText.trim()) return
@@ -161,7 +184,7 @@ export default function ManageTicketPage() {
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       
       {/* ===== HEADER ===== */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-8">
         <div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-4">
             <MessageSquare className="w-4 h-4 text-blue-400" />
@@ -172,13 +195,33 @@ export default function ManageTicketPage() {
           </h1>
           <p className="text-gray-400 text-lg">Manage ticket details and replies.</p>
         </div>
-        <Link
-          href="/accessadmin/tickets"
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all mt-4 md:mt-0"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Tickets
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/accessadmin/tickets"
+            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Link>
+          {ticket.status !== 'in-progress' && (
+            <button
+              onClick={() => updateStatus('in-progress')}
+              disabled={loading}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold hover:shadow-[0_0_20px_rgba(59,130,246,0.35)] transition-all disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
+              Mark In Progress
+            </button>
+          )}
+          <button
+            onClick={deleteTicket}
+            disabled={deleting}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 transition-all disabled:opacity-50"
+          >
+            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            Delete
+          </button>
+        </div>
       </div>
 
       {/* ===== ALERTS ===== */}

@@ -227,6 +227,21 @@ export default function ManageOrderPage() {
                 <p className="text-xs text-gray-400">{order.user?.email}</p>
               </div>
               <div className="bg-black/30 rounded-xl p-4 border border-white/5">
+                <p className="text-sm text-gray-400 flex items-center gap-2">
+                  <User className="w-4 h-4" /> Game ID / IGN
+                </p>
+                <p className="font-medium font-mono">{order.ign || 'Not provided'}</p>
+                {order.ignUsername && (
+                  <p className="text-sm text-emerald-400 mt-1">Username: {order.ignUsername}</p>
+                )}
+              </div>
+              <div className="bg-black/30 rounded-xl p-4 border border-white/5">
+                <p className="text-sm text-gray-400 flex items-center gap-2">
+                  <Mail className="w-4 h-4" /> Contact Email
+                </p>
+                <p className="font-medium">{order.contactEmail || 'Not provided'}</p>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4 border border-white/5">
                 <p className="text-sm text-gray-400">Total Amount</p>
                 <p className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
                   {finalTotal.toFixed(2)} USDC

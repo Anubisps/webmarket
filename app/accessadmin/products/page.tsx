@@ -156,14 +156,24 @@ export default function AdminProductsPage() {
   }, [])
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this product? This action cannot be undone.')) return
+    if (!confirm('Hide this product from the website?\n\nIt will be removed from the storefront but kept in the database for order history.')) {
+      return
+    }
+
+    const permanent = confirm(
+      'Permanently delete from database too?\n\nOnly choose OK if you are sure. This also removes order line items linked to this product.\n\nCancel = hide only (recommended).'
+    )
     
     try {
-      const res = await fetch(`/api/admin/products/${id}`, {
+      const url = permanent
+        ? `/api/admin/products/${id}?permanent=true`
+        : `/api/admin/products/${id}`
+
+      const res = await fetch(url, {
         method: 'DELETE',
       })
       if (res.ok) {
-        toast.success('Product deleted successfully')
+        toast.success(permanent ? 'Product permanently deleted' : 'Product hidden from storefront')
         setProducts(prev => prev.filter(p => p.id !== id))
       } else {
         const data = await res.json()

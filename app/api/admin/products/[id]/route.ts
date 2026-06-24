@@ -58,8 +58,13 @@ export async function PUT(
       isActive, isLimited, discount, startDate, endDate,
       images, variants, bannerImage,
       availabilityMessage, showAvailabilityMessage,
-      productNote, customDelivery, customNote
+      productNote, customDelivery, customNote,
+      enableUsernameFetch, fetchProvider, gameIdLabel
     } = body
+
+    const parsedEnableFetch = enableUsernameFetch === 'inherit' || enableUsernameFetch === null || enableUsernameFetch === undefined
+      ? null
+      : enableUsernameFetch === true || enableUsernameFetch === 'true'
 
     const product = await prisma.product.update({
       where: { id },
@@ -78,10 +83,12 @@ export async function PUT(
         images: images || [],
         variants: variants || null,
         bannerImage: bannerImage || null,
-        // ✅ New fields – custom note & delivery
         productNote: productNote || null,
         customDelivery: customDelivery || null,
         customNote: customNote || null,
+        enableUsernameFetch: parsedEnableFetch,
+        fetchProvider: parsedEnableFetch === true ? (fetchProvider || 'wherewindsmeet') : parsedEnableFetch === false ? null : fetchProvider || null,
+        gameIdLabel: gameIdLabel || null,
       }
     })
 
@@ -109,10 +116,27 @@ export async function DELETE(
     }
 
     const { id } = await params
-    // Soft delete – set deletedAt timestamp instead of deleting
+    const { searchParams } = new URL(req.url)
+    const permanent = searchParams.get('permanent') === 'true'
+
+    if (permanent) {
+      await prisma.$transaction([
+        prisma.orderItem.deleteMany({ where: { productId: id } }),
+        prisma.wishlistItem.deleteMany({ where: { productId: id } }),
+        prisma.review.deleteMany({ where: { productId: id } }),
+        prisma.bundleItem.deleteMany({ where: { productId: id } }),
+        prisma.product.delete({ where: { id } }),
+      ])
+
+      return NextResponse.json({ success: true, message: 'Product permanently deleted from database' })
+    }
+
     await prisma.product.update({
       where: { id },
-      data: { deletedAt: new Date() }
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+      }
     })
 
     return NextResponse.json({ success: true, message: 'Product archived (soft deleted)' })

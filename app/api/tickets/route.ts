@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
+import { notifyStaffNewTicket } from '@/lib/notifications'
 
 export async function POST(request: Request) {
   try {
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     // Create the ticket (this already links the order via orderId)
-    await prisma.ticket.create({
+    const ticket = await prisma.ticket.create({
       data: {
         userId: user.id,
         subject: subject.trim(),
@@ -48,10 +49,17 @@ export async function POST(request: Request) {
         status: 'open',
         priority: 'medium',
         orderId: orderId || null
+      },
+      include: {
+        user: {
+          select: { username: true }
+        }
       }
     })
 
-    return NextResponse.json({ success: true })
+    await notifyStaffNewTicket(ticket)
+
+    return NextResponse.json({ success: true, ticketId: ticket.id })
   } catch (error) {
     console.error('Ticket creation error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

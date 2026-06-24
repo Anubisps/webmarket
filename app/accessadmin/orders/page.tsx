@@ -52,6 +52,7 @@ export default async function AdminOrders() {
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Order ID</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Customer</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Game ID</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Total</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Status</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Payment</th>
@@ -62,7 +63,7 @@ export default async function AdminOrders() {
             <tbody className="divide-y divide-white/5">
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
                     <Box className="w-12 h-12 mx-auto mb-3 text-gray-500" />
                     <p>No orders found</p>
                   </td>
@@ -74,6 +75,12 @@ export default async function AdminOrders() {
                     <td className="px-6 py-4">
                       <p className="font-medium">{order.user.username}</p>
                       <p className="text-xs text-gray-400">{order.user.email}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="font-mono text-sm">{order.ign || '—'}</p>
+                      {order.ignUsername && (
+                        <p className="text-xs text-emerald-400">{order.ignUsername}</p>
+                      )}
                     </td>
                     <td className="px-6 py-4 font-bold text-emerald-400">{order.total.toFixed(2)} USDC</td>
                     <td className="px-6 py-4">
