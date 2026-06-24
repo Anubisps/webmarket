@@ -1,8 +1,9 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { MessageCircle, X, Send, User, Mail, Sparkles, Phone, XCircle, AlertCircle } from 'lucide-react'
+import { MessageCircle, X, Send, User, Mail, Sparkles, Phone, XCircle, AlertCircle, Paperclip } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import toast from 'react-hot-toast'
+import { LiveChatMessageBody } from '@/components/chat/LiveChatMessageBody'
 
 export function LiveChatWidget() {
   const { data: session } = useSession()
@@ -17,6 +18,9 @@ export function LiveChatWidget() {
   const [lastExpediteTime, setLastExpediteTime] = useState<number | null>(null)
   const [expediteCooldown, setExpediteCooldown] = useState(0)
   const [isEnded, setIsEnded] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const processedMessageIds = useRef<Set<string>>(new Set())
   const lastMessageIdRef = useRef<string | null>(null)
@@ -37,16 +41,24 @@ export function LiveChatWidget() {
   // If user is logged in, pre-fill name and email
   useEffect(() => {
     if (session?.user) {
-      setVisitorName(session.user.username || '')
+      const name = session.user.username || session.user.email?.split('@')[0] || ''
+      setVisitorName(name)
       setVisitorEmail(session.user.email || '')
       setShowLoginForm(false)
     }
   }, [session])
 
+  const getVisitorDisplayName = () => {
+    if (session?.user?.username) return session.user.username
+    if (session?.user?.email) return session.user.email.split('@')[0]
+    if (visitorName.trim()) return visitorName.trim()
+    return 'Guest'
+  }
+
   // Initialize session
   const initSession = async () => {
     if (!visitorId) return
-    const name = session?.user?.username || visitorName || 'Guest'
+    const name = getVisitorDisplayName()
     const email = session?.user?.email || visitorEmail || ''
     try {
       const res = await fetch('/api/livechat/session', {
@@ -94,7 +106,97 @@ export function LiveChatWidget() {
     }
   }
 
-  // Poll for new messages
+  const scrollMessagesToBottom = () => {
+    const container = messagesContainerRef.current
+    if (container) {
+      container.scrollTop = container.scrollHeight
+    }
+  }
+
+  const uploadFile = async (file: File) => {
+    if (!sessionId || isEnded || uploading) return
+
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      toast.error('Only images and PDF files are allowed')
+      return
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File must be 10MB or smaller')
+      return
+    }
+
+    setUploading(true)
+    const tempId = 'temp_upload_' + Date.now()
+    const tempMsg = {
+      id: tempId,
+      sender: 'visitor',
+      message: '',
+      attachmentUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+      attachmentName: file.name,
+      attachmentMime: file.type,
+      status: 'sent',
+      createdAt: new Date().toISOString()
+    }
+    processedMessageIds.current.add(tempId)
+    setMessages(prev => [...prev, tempMsg])
+
+    try {
+      const formData = new FormData()
+      formData.append('sessionId', sessionId)
+      formData.append('sender', 'visitor')
+      formData.append('file', file)
+
+      const res = await fetch('/api/livechat/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        processedMessageIds.current.delete(tempId)
+        processedMessageIds.current.add(data.id)
+        lastMessageIdRef.current = data.id
+        setMessages(prev => prev.map(m => m.id === tempId ? data : m))
+        toast.success('File uploaded')
+      } else {
+        const data = await res.json().catch(() => ({}))
+        processedMessageIds.current.delete(tempId)
+        setMessages(prev => prev.filter(m => m.id !== tempId))
+        toast.error(data.error || 'Failed to upload file')
+      }
+    } catch {
+      processedMessageIds.current.delete(tempId)
+      setMessages(prev => prev.filter(m => m.id !== tempId))
+      toast.error('Network error')
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) uploadFile(file)
+  }
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    if (!sessionId || isEnded || showLoginForm) return
+
+    const items = e.clipboardData?.items
+    if (!items) return
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (file) {
+          e.preventDefault()
+          uploadFile(file)
+          break
+        }
+      }
+    }
+  }
   const pollMessages = async () => {
     if (!sessionId || isEnded) return
     try {
@@ -274,17 +376,35 @@ export function LiveChatWidget() {
     }
   }, [expediteCooldown])
 
-  // Auto-scroll to bottom
+  // Auto-scroll within chat panel only
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    scrollMessagesToBottom()
+  }, [messages, uploading])
 
   // Initial session setup
   useEffect(() => {
     if (isOpen && !sessionId && visitorId && !showLoginForm) {
       initSession()
     }
-  }, [isOpen, visitorId, showLoginForm])
+  }, [isOpen, visitorId, showLoginForm, session?.user?.id])
+
+  // Update existing session when logged-in user details become available
+  useEffect(() => {
+    if (!isOpen || !visitorId || !sessionId || !session?.user) return
+
+    const name = getVisitorDisplayName()
+    const email = session.user.email || visitorEmail || ''
+
+    fetch('/api/livechat/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        visitorId,
+        visitorName: name,
+        visitorEmail: email
+      })
+    }).catch(() => {})
+  }, [isOpen, visitorId, sessionId, session?.user?.id, session?.user?.username, session?.user?.email])
 
   // Polling interval
   useEffect(() => {
@@ -364,7 +484,7 @@ export function LiveChatWidget() {
           </div>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0" onPaste={handlePaste}>
               {isEnded ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400">
                   <XCircle className="w-16 h-16 mb-2 opacity-50" />
@@ -394,11 +514,17 @@ export function LiveChatWidget() {
                       <p className="text-xs text-gray-500">Send a message to start the conversation</p>
                     </div>
                   ) : (
-                    messages.map((msg, idx) => (
-                      <div key={idx} className={`flex ${msg.sender === 'admin' ? 'justify-start' : 'justify-end'}`}>
+                    messages.map((msg) => (
+                      <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-start' : 'justify-end'}`}>
                         <div className={`max-w-[80%] p-3 rounded-xl text-sm ${msg.sender === 'admin' ? 'bg-white/10 text-gray-200' : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'}`}>
-                          {msg.message}
-                          <div className="text-[10px] mt-1 opacity-50">{new Date(msg.createdAt).toLocaleTimeString()}</div>
+                          <LiveChatMessageBody msg={msg} />
+                          <div className="text-[10px] mt-1 opacity-50">
+                            {(() => {
+                              const date = new Date(msg.createdAt)
+                              const pad = (n: number) => String(n).padStart(2, '0')
+                              return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+                            })()}
+                          </div>
                         </div>
                       </div>
                     ))
@@ -410,14 +536,31 @@ export function LiveChatWidget() {
 
             {!isEnded && (
               <div className="p-4 border-t border-white/10 shrink-0 bg-[#0f0f1a]">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
                 <form onSubmit={(e) => { e.preventDefault(); sendMessage() }} className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading || sending}
+                    className="p-2 rounded-xl bg-white/10 border border-white/10 text-gray-300 hover:bg-white/20 transition-all disabled:opacity-50"
+                    title="Upload image or PDF"
+                  >
+                    <Paperclip className="w-5 h-5" />
+                  </button>
                   <input
                     type="text"
-                    placeholder="Type a message..."
+                    placeholder={uploading ? 'Uploading...' : 'Type a message or paste screenshot...'}
                     className="flex-1 px-4 py-2 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
                     value={input}
                     onChange={handleInputChange}
-                    disabled={sending}
+                    onPaste={handlePaste}
+                    disabled={sending || uploading}
                   />
                   <button type="submit" className="p-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-all disabled:opacity-50" disabled={sending}>
                     <Send className="w-5 h-5" />

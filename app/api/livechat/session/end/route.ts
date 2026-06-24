@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { deleteLiveChatSessionFiles } from '@/lib/livechatFiles'
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +14,8 @@ export async function POST(request: Request) {
       where: { id: sessionId },
       data: { status: 'closed' }
     })
+
+    await deleteLiveChatSessionFiles(sessionId)
 
     return NextResponse.json({ success: true })
   } catch (error) {

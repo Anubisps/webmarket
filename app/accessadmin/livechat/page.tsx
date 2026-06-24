@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { MessageCircle, Sparkles, Box, User, Send, Clock, ArrowLeft, XCircle, Trash2, Globe, Activity, Bell, CheckCircle, CheckCheck, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { LiveChatMessageBody } from '@/components/chat/LiveChatMessageBody'
 
 interface ChatSession {
   id: string
@@ -26,9 +27,23 @@ export default function AdminLiveChatPage() {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [activeTab, setActiveTab] = useState<'active' | 'closed'>('active')
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [loadingMessages, setLoadingMessages] = useState(false)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const lastMessageIdRef = useRef<Record<string, string>>({})
+  const selectedIdRef = useRef<string | null>(null)
+  const didAutoSelectRef = useRef(false)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId
+  }, [selectedId])
+
+  const scrollMessagesToBottom = () => {
+    const container = messagesContainerRef.current
+    if (container) {
+      container.scrollTop = container.scrollHeight
+    }
+  }
 
   const loadSessions = async () => {
     try {
@@ -39,8 +54,7 @@ export default function AdminLiveChatPage() {
       const activeData = await activeRes.json()
       const closedData = await closedRes.json()
 
-      // Auto-select first session with unread messages
-      if (!selectedId) {
+      if (!didAutoSelectRef.current && !selectedIdRef.current) {
         const firstUnread = activeData.find((s: ChatSession) => s.unreadCount > 0)
         if (firstUnread) {
           setSelectedId(firstUnread.id)
@@ -48,6 +62,7 @@ export default function AdminLiveChatPage() {
         } else if (activeData.length > 0) {
           setSelectedId(activeData[0].id)
         }
+        didAutoSelectRef.current = true
       }
 
       setActiveSessions(activeData)
@@ -60,16 +75,34 @@ export default function AdminLiveChatPage() {
   }
 
   const loadMessages = async (sessionId: string) => {
+    setLoadingMessages(true)
+    setMessages([])
     try {
       const res = await fetch(`/api/admin/livechat/sessions/${sessionId}`)
+      if (!res.ok) throw new Error('Failed to load')
       const data = await res.json()
       setMessages(data.messages || [])
       if (data.messages && data.messages.length > 0) {
         lastMessageIdRef.current[sessionId] = data.messages[data.messages.length - 1].id
+      } else {
+        delete lastMessageIdRef.current[sessionId]
       }
+      setActiveSessions(prev => prev.map(s =>
+        s.id === sessionId ? { ...s, unreadCount: 0 } : s
+      ))
     } catch (err) {
       toast.error('Failed to load messages')
+      setMessages([])
+    } finally {
+      setLoadingMessages(false)
     }
+  }
+
+  const selectSession = (sessionId: string) => {
+    if (sessionId === selectedId) return
+    setSelectedId(sessionId)
+    setMessages([])
+    delete lastMessageIdRef.current[sessionId]
   }
 
   const sendMessage = async () => {
@@ -156,7 +189,7 @@ export default function AdminLiveChatPage() {
   }
 
   const pollMessages = async () => {
-    if (!selectedId) return
+    if (!selectedId || loadingMessages) return
     try {
       const lastId = lastMessageIdRef.current[selectedId] || null
       const res = await fetch('/api/livechat/messages/poll', {
@@ -177,27 +210,6 @@ export default function AdminLiveChatPage() {
     }
   }
 
-  // Mark messages as read when session is selected
-  useEffect(() => {
-    if (selectedId) {
-      fetch(`/api/admin/livechat/sessions/${selectedId}`, { method: 'GET' }).then(() => {
-        setActiveSessions(prev => prev.map(s => 
-          s.id === selectedId ? { ...s, unreadCount: 0 } : s
-        ))
-      })
-    }
-  }, [selectedId])
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  useEffect(() => {
-    loadSessions()
-    const interval = setInterval(loadSessions, 2000)
-    return () => clearInterval(interval)
-  }, [])
-
   useEffect(() => {
     if (selectedId) {
       loadMessages(selectedId)
@@ -208,13 +220,35 @@ export default function AdminLiveChatPage() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
-    if (selectedId) {
+    if (selectedId && !loadingMessages) {
       interval = setInterval(pollMessages, 1000)
     }
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [selectedId])
+  }, [selectedId, loadingMessages])
+
+  useEffect(() => {
+    scrollMessagesToBottom()
+  }, [messages, loadingMessages])
+
+  useEffect(() => {
+    loadSessions()
+    const interval = setInterval(loadSessions, 2000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const formatDateTime = (value: string) => {
+    const date = new Date(value)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+  }
+
+  const formatTime = (value: string) => {
+    const date = new Date(value)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  }
 
   if (loading) return <div className="p-8 text-center text-gray-400">Loading live chat...</div>
 
@@ -294,7 +328,7 @@ export default function AdminLiveChatPage() {
                       return (
                         <button
                           key={session.id}
-                          onClick={() => setSelectedId(session.id)}
+                          onClick={() => selectSession(session.id)}
                           className={`w-full text-left p-4 transition-colors hover:bg-white/5 ${
                             selectedId === session.id ? 'bg-white/10' : ''
                           } ${hasUnread ? 'bg-blue-500/5' : ''}`}
@@ -319,7 +353,7 @@ export default function AdminLiveChatPage() {
                                 {session.ipAddress || 'Unknown IP'}
                               </p>
                               <p className="text-xs text-gray-500">
-                                {new Date(session.updatedAt).toLocaleString()}
+                                {formatDateTime(session.updatedAt)}
                               </p>
                             </div>
                             {hasUnread && (
@@ -363,7 +397,7 @@ export default function AdminLiveChatPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400">
-                        {new Date(selectedSession.updatedAt).toLocaleString()}
+                        {formatDateTime(selectedSession.updatedAt)}
                       </span>
                       {activeTab === 'active' && (
                         <button
@@ -376,16 +410,20 @@ export default function AdminLiveChatPage() {
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
-                    {messages.length === 0 ? (
+                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
+                    {loadingMessages ? (
+                      <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                        <p className="text-sm">Loading messages...</p>
+                      </div>
+                    ) : messages.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full text-gray-400">
                         <MessageCircle className="w-12 h-12 mb-2 opacity-50" />
                         <p className="text-sm">No messages yet</p>
                       </div>
                     ) : (
-                      messages.map((msg, idx) => (
+                      messages.map((msg) => (
                         <div
-                          key={idx}
+                          key={msg.id}
                           className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}
                         >
                           <div
@@ -396,7 +434,7 @@ export default function AdminLiveChatPage() {
                             }`}
                           >
                             <div className="flex items-start gap-2">
-                              <span>{msg.message}</span>
+                              <LiveChatMessageBody msg={msg} />
                               {msg.sender === 'admin' && (
                                 <span className="shrink-0">
                                   {getMessageStatusIcon(msg.status)}
@@ -404,13 +442,12 @@ export default function AdminLiveChatPage() {
                               )}
                             </div>
                             <div className="text-[10px] mt-1 opacity-50 flex items-center gap-1">
-                              {new Date(msg.createdAt).toLocaleTimeString()}
+                              {formatTime(msg.createdAt)}
                             </div>
                           </div>
                         </div>
                       ))
                     )}
-                    <div ref={messagesEndRef} />
                   </div>
 
                   {activeTab === 'active' && (

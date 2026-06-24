@@ -333,7 +333,10 @@ model LiveChatMessage {
   id          String           @id @default(cuid())
   sessionId   String
   sender      String
-  message     String
+  message     String           @default("")
+  attachmentUrl   String?
+  attachmentName  String?
+  attachmentMime  String?
   status      String           @default("sent")
   isRead      Boolean          @default(false)
   createdAt   DateTime         @default(now())

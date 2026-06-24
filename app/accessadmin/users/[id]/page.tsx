@@ -2,12 +2,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Sparkles, User, Mail, Shield, CheckCircle, XCircle, AlertCircle, Edit, Ban, Unlock, Save, Box } from 'lucide-react'
+import { ArrowLeft, Sparkles, User, Mail, Shield, CheckCircle, XCircle, AlertCircle, Edit, Ban, Unlock, Save, Box, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useSession } from 'next-auth/react'
 
 export default function ManageUserPage() {
   const router = useRouter()
   const params = useParams()
+  const { data: session } = useSession()
   const id = params.id as string
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -17,6 +19,7 @@ export default function ManageUserPage() {
   const [roleLoading, setRoleLoading] = useState(false)
   const [verifyLoading, setVerifyLoading] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [editForm, setEditForm] = useState({ username: '', email: '' })
 
@@ -134,7 +137,6 @@ export default function ManageUserPage() {
     })
 
     if (res.ok) {
-      // ✅ Redirect to the users list – no loop
       toast.success('User updated successfully')
       setTimeout(() => {
         router.push('/accessadmin/users')
@@ -150,6 +152,33 @@ export default function ManageUserPage() {
   }
 }
 
+  const deleteUser = async () => {
+    const confirmed = confirm(
+      `Delete user "${user.username}" (${user.email})?\n\nThis will permanently remove their account, orders, tickets, and all related data. This action cannot be undone.`
+    )
+    if (!confirmed) return
+
+    setDeleteLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' })
+      const data = await res.json().catch(() => ({}))
+
+      if (res.ok) {
+        toast.success(`User "${user.username}" deleted`)
+        router.push('/accessadmin/users')
+      } else {
+        setError(data.error || 'Failed to delete user')
+      }
+    } catch {
+      setError('Network error – please try again')
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
   if (loading) return <div className="p-8 text-center text-gray-400">Loading user...</div>
   if (error) return (
     <div className="p-8 text-center">
@@ -161,7 +190,6 @@ export default function ManageUserPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       
-      {/* ===== HEADER ===== */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
         <div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-4">
@@ -182,11 +210,9 @@ export default function ManageUserPage() {
         </Link>
       </div>
 
-      {/* ===== ALERTS ===== */}
       {success && <p className="text-emerald-400 mb-4">{success}</p>}
       {error && <p className="text-red-400 mb-4">{error}</p>}
 
-      {/* ===== USER INFO CARD ===== */}
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 mb-6">
         <div className="flex items-center gap-3 mb-6">
           <Box className="w-5 h-5 text-purple-400" />
@@ -256,7 +282,6 @@ export default function ManageUserPage() {
         </div>
       </div>
 
-      {/* ===== ACTIONS CARD ===== */}
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 mb-6">
         <div className="flex items-center gap-3 mb-6">
           <Shield className="w-5 h-5 text-cyan-400" />
@@ -293,10 +318,19 @@ export default function ManageUserPage() {
             <Edit className="w-4 h-4" />
             {editMode ? 'Cancel Edit' : 'Edit Profile'}
           </button>
+          {session?.user?.id !== user.id && (
+            <button
+              onClick={deleteUser}
+              disabled={deleteLoading}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-red-700 to-red-900 text-white font-bold hover:shadow-[0_0_30px_rgba(239,68,68,0.3)] hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Trash2 className="w-4 h-4" />
+              {deleteLoading ? 'Deleting...' : 'Delete User'}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ===== EDIT PROFILE FORM ===== */}
       {editMode && (
         <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 mb-6">
           <div className="flex items-center gap-3 mb-6">
@@ -335,7 +369,6 @@ export default function ManageUserPage() {
         </div>
       )}
 
-      {/* ===== CHANGE ROLE CARD ===== */}
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8">
         <div className="flex items-center gap-3 mb-6">
           <Shield className="w-5 h-5 text-purple-400" />

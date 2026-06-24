@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { randomUUID } from 'crypto'
+import { getClientIp } from '@/lib/getClientIp'
 
 export async function POST(request: Request) {
   try {
@@ -10,10 +10,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Visitor ID required' }, { status: 400 })
     }
 
-    // Capture IP address
-    const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('remote-addr') || null
+    const ipAddress = getClientIp(request)
+    const name = visitorName?.trim() || 'Guest'
+    const email = visitorEmail?.trim() || ''
 
-    // Find or create session
     let session = await prisma.liveChatSession.findUnique({
       where: { visitorId },
       include: {
@@ -27,9 +27,9 @@ export async function POST(request: Request) {
       session = await prisma.liveChatSession.create({
         data: {
           visitorId,
-          visitorName: visitorName || 'Guest',
-          visitorEmail: visitorEmail || '',
-          ipAddress: ipAddress, // 👈 Save IP
+          visitorName: name,
+          visitorEmail: email,
+          ipAddress,
           status: 'active'
         },
         include: {
@@ -38,6 +38,38 @@ export async function POST(request: Request) {
           }
         }
       })
+    } else {
+      const updates: {
+        visitorName?: string
+        visitorEmail?: string
+        ipAddress?: string | null
+        status?: string
+      } = {}
+
+      if (name !== 'Guest' && name !== session.visitorName) {
+        updates.visitorName = name
+      }
+      if (email && email !== session.visitorEmail) {
+        updates.visitorEmail = email
+      }
+      if (ipAddress && ipAddress !== session.ipAddress) {
+        updates.ipAddress = ipAddress
+      }
+      if (session.status === 'closed') {
+        updates.status = 'active'
+      }
+
+      if (Object.keys(updates).length > 0) {
+        session = await prisma.liveChatSession.update({
+          where: { id: session.id },
+          data: updates,
+          include: {
+            messages: {
+              orderBy: { createdAt: 'asc' }
+            }
+          }
+        })
+      }
     }
 
     return NextResponse.json(session)
