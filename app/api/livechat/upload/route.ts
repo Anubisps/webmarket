@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { randomBytes } from 'crypto'
-import { getLiveChatUploadDir, isAllowedLiveChatFile } from '@/lib/livechatFiles'
+import { getLiveChatUploadDir, isAllowedLiveChatFile, getLiveChatFileUrl } from '@/lib/livechatFiles'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer())
     await writeFile(filePath, buffer)
 
-    const attachmentUrl = `/uploads/livechat/${sessionId}/${uniqueName}`
+    const attachmentUrl = getLiveChatFileUrl(sessionId, uniqueName)
 
     const newMessage = await prisma.liveChatMessage.create({
       data: {

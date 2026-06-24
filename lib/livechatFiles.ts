@@ -16,3 +16,5 @@ export async function deleteLiveChatSessionFiles(sessionId: string): Promise<voi
   const dir = getLiveChatUploadDir(sessionId)
   await rm(dir, { recursive: true, force: true })
 }
+
+export { getLiveChatFileUrl } from '@/lib/livechatUrls'
