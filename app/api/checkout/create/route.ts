@@ -10,6 +10,7 @@ import { isProductPubliclyAvailable } from '@/lib/activeProduct'
 import { calcReferralDiscount, canStackDiscounts } from '@/lib/discountStacking'
 import { writeAuditLog } from '@/lib/auditLog'
 import { sendDiscordNotification } from '@/lib/events/discord'
+import { getUserLoyalty } from '@/lib/loyalty'
 
 function calcDiscountAmount(
   discount: { discount: number; discountType: string },
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
     const {
       productId, providerId, userId, ign, ignUsername, contactEmail,
       discountCode, referralCode, variantId, subscriptionId,
+      wantsSubscription, subscriptionCommitmentYears,
     } = await request.json()
 
     if (userId !== user.id) {
@@ -107,7 +109,17 @@ export async function POST(request: Request) {
       await prisma.user.update({ where: { id: user.id }, data: { referralDiscountUsed: true } })
     }
 
-    const total = Math.max(unitPrice - discountAmount - referralDiscount, 0)
+    const loyalty = await getUserLoyalty(user.id)
+    const loyaltyDiscount = loyalty.qualified
+      ? unitPrice * (loyalty.discountPercent / 100)
+      : 0
+
+    const subscribe = !subscriptionId && !!wantsSubscription && product.subscriptionEnabled
+    const commitmentYears = subscribe && subscriptionCommitmentYears
+      ? Math.min(Math.max(parseInt(String(subscriptionCommitmentYears), 10) || 1, 1), 5)
+      : null
+
+    const total = Math.max(unitPrice - discountAmount - referralDiscount - loyaltyDiscount, 0)
 
     const order = await prisma.order.create({
       data: {
@@ -116,7 +128,9 @@ export async function POST(request: Request) {
         ignUsername: ignUsername || null,
         contactEmail: contactEmail || null,
         total,
-        discountAmount: discountAmount > 0 || referralDiscount > 0 ? discountAmount + referralDiscount : null,
+        discountAmount: discountAmount > 0 || referralDiscount > 0 || loyaltyDiscount > 0
+          ? discountAmount + referralDiscount + loyaltyDiscount
+          : null,
         status: 'processing',
         paymentStatus: 'pending',
         paymentMethod: providerId,
@@ -124,6 +138,8 @@ export async function POST(request: Request) {
         fulfillmentStatus: 'pending',
         isSubscriptionRenewal: !!subscriptionId,
         subscriptionId: subscriptionId || null,
+        wantsSubscription: subscribe,
+        subscriptionCommitmentYears: commitmentYears,
       },
     })
 

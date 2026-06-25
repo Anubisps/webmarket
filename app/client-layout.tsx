@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { LiveChatWidget } from '@/components/chat/LiveChatWidget'
+import { PwaRegister } from '@/components/PwaRegister'
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -89,6 +90,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <PwaRegister />
       <Header />
       <main className="min-h-screen flex flex-col">
         <div className="flex-grow">{children}</div>

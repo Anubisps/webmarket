@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { productImageUrl } from '@/lib/productImage'
 import { prisma } from '@/lib/db'
 import { publicProductWhere } from '@/lib/activeProduct'
 import { 
@@ -163,7 +164,7 @@ export default async function Home() {
               limitedProducts.map((product) => {
                 // ✅ FIXED: Get the first image correctly – same as product detail page
                 const firstImage = product.images && product.images.length > 0 ? product.images[0] : null
-                const imageSrc = firstImage ? `/api/images/products/${firstImage.split('/').pop()}` : null
+                const imageSrc = productImageUrl(firstImage)
 
                 return (
                   <Link

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, Box, ChevronDown, Sparkles, Filter, ArrowUpDown } from 'lucide-react'
 import { ProductCard } from '@/components/products/ProductCard'
+import { productImageUrl } from '@/lib/productImage'
 
 export function ProductGrid() {
   const router = useRouter()
@@ -314,7 +315,7 @@ export function ProductGrid() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6">
               {products.map((product) => {
                 const firstImage = product.images && product.images.length > 0 ? product.images[0] : null
-                const imageSrc = firstImage ? `/api/images/products/${firstImage.split('/').pop()}` : null
+                const imageSrc = productImageUrl(firstImage)
                 return (
                   <ProductCard
                     key={product.id}

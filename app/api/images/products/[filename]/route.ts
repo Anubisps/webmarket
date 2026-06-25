@@ -1,42 +1,60 @@
 import { NextResponse } from 'next/server'
-import { readFile } from 'fs/promises'
+import { readFile, access } from 'fs/promises'
 import path from 'path'
+import { constants } from 'fs'
+
+const CONTENT_TYPES: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+}
+
+async function tryReadFile(filePath: string) {
+  try {
+    await access(filePath, constants.R_OK)
+    return await readFile(filePath)
+  } catch {
+    return null
+  }
+}
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ filename: string }> }
 ) {
   try {
     const { filename } = await params
 
-    // Security: Prevent directory traversal
     if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
       return NextResponse.json({ error: 'Invalid filename' }, { status: 400 })
     }
 
-    // Allowed extensions
     const ext = path.extname(filename).toLowerCase()
-    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg']
-    if (!allowed.includes(ext)) {
+    if (!CONTENT_TYPES[ext]) {
       return NextResponse.json({ error: 'File type not allowed' }, { status: 400 })
     }
 
-    const filePath = path.join(process.cwd(), 'public', 'uploads', 'products', filename)
+    const candidates = [
+      path.join(process.cwd(), 'public', 'uploads', 'products', filename),
+      path.join(process.cwd(), 'uploads', 'products', filename),
+    ]
 
-    // Read the file
-    const fileBuffer = await readFile(filePath)
+    let fileBuffer: Buffer | null = null
+    for (const candidate of candidates) {
+      fileBuffer = await tryReadFile(candidate)
+      if (fileBuffer) break
+    }
 
-    // Determine content type
-    const contentType =
-      ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
-      ext === '.png' ? 'image/png' :
-      ext === '.webp' ? 'image/webp' :
-      ext === '.gif' ? 'image/gif' :
-      ext === '.svg' ? 'image/svg+xml' : 'application/octet-stream'
+    if (!fileBuffer) {
+      return NextResponse.json({ error: 'Image not found' }, { status: 404 })
+    }
 
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
-        'Content-Type': contentType,
+        'Content-Type': CONTENT_TYPES[ext],
         'Cache-Control': 'public, max-age=86400',
       },
     })

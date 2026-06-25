@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, CreditCard, User, Mail, ArrowRight, Loader2, Tag, AlertCircle, ShoppingBag, Shield, Sparkles } from 'lucide-react'
+import { CheckCircle, CreditCard, User, Mail, ArrowRight, Loader2, Tag, AlertCircle, ShoppingBag, Shield, Sparkles, RefreshCw, Award } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { formatPriceLabel } from '@/lib/formatPrice'
 
@@ -24,6 +24,16 @@ interface CheckoutUIProps {
   fetchProvider: string
   gameIdLabel: string
   subscriptionId?: string
+  subscriptionEnabled?: boolean
+  subscriptionBillingLabel?: string
+  subscriptionIntervalDays?: number
+  loyalty?: {
+    qualified: boolean
+    discountPercent: number
+    spent: number
+    threshold: number
+    remaining: number
+  }
 }
 
 export default function CheckoutUI({
@@ -37,6 +47,10 @@ export default function CheckoutUI({
   fetchProvider,
   gameIdLabel,
   subscriptionId,
+  subscriptionEnabled = false,
+  subscriptionBillingLabel = 'Monthly',
+  subscriptionIntervalDays = 30,
+  loyalty,
 }: CheckoutUIProps) {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
@@ -58,6 +72,8 @@ export default function CheckoutUI({
   const [fetchedUsername, setFetchedUsername] = useState<string | null>(null)
   const [csrfToken, setCsrfToken] = useState<string>('')
   const [selectedVariantId, setSelectedVariantId] = useState<string>('')
+  const [wantsSubscription, setWantsSubscription] = useState(false)
+  const [commitmentYears, setCommitmentYears] = useState(1)
   
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
 
@@ -81,7 +97,10 @@ export default function CheckoutUI({
     }
   }, [mounted])
 
-  const finalPrice = Math.max(unitPrice - (discountApplied?.amount || 0), 0)
+  const loyaltyDiscount = loyalty?.qualified
+    ? unitPrice * (loyalty.discountPercent / 100)
+    : 0
+  const finalPrice = Math.max(unitPrice - (discountApplied?.amount || 0) - loyaltyDiscount, 0)
 
   // ✅ Button disabled check (only after mounted)
   const isButtonDisabled = !mounted || loading || !selectedMethod || !ign.trim() || !contactEmail.trim() || !csrfToken
@@ -203,6 +222,8 @@ export default function CheckoutUI({
           referralCode: null,
           variantId: selectedVariantId || null,
           subscriptionId: subscriptionId || null,
+          wantsSubscription: subscriptionEnabled ? wantsSubscription : false,
+          subscriptionCommitmentYears: subscriptionEnabled && wantsSubscription ? commitmentYears : null,
         })
       })
 
@@ -387,6 +408,79 @@ export default function CheckoutUI({
               </section>
             )}
 
+            {subscriptionEnabled && (
+              <section className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-6 backdrop-blur-lg">
+                <h2 className="mb-4 flex items-center gap-2 font-bold">
+                  <RefreshCw className="h-5 w-5 text-cyan-400" />
+                  Subscription
+                </h2>
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-4">
+                  <input
+                    type="checkbox"
+                    checked={wantsSubscription}
+                    onChange={e => setWantsSubscription(e.target.checked)}
+                    className="mt-1 accent-cyan-500"
+                  />
+                  <div>
+                    <p className="font-medium">Subscribe to auto-renewal</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Billed {subscriptionBillingLabel.toLowerCase()} ({subscriptionIntervalDays} days) after this order is paid.
+                    </p>
+                  </div>
+                </label>
+                {wantsSubscription && (
+                  <div className="mt-4">
+                    <label className="mb-2 block text-sm text-gray-400">Commitment period</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[1, 2, 3].map(years => (
+                        <button
+                          key={years}
+                          type="button"
+                          onClick={() => setCommitmentYears(years)}
+                          className={`rounded-xl border px-3 py-2 text-sm transition ${
+                            commitmentYears === years
+                              ? 'border-cyan-500/50 bg-cyan-500/20 text-white'
+                              : 'border-white/10 bg-black/20 text-gray-400 hover:border-white/20'
+                          }`}
+                        >
+                          {years} year{years > 1 ? 's' : ''}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">
+                      You commit to this subscription for {commitmentYears} year{commitmentYears > 1 ? 's' : ''}. Renewals continue until the commitment ends.
+                    </p>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {loyalty && (
+              <section className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 backdrop-blur-lg">
+                <div className="flex items-start gap-3">
+                  <Award className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    {loyalty.qualified ? (
+                      <>
+                        <p className="font-medium text-emerald-300">Loyalty reward active</p>
+                        <p className="text-sm text-gray-400 mt-1">
+                          {loyalty.discountPercent}% off applied — you&apos;ve spent ${loyalty.spent.toFixed(2)} with us.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-medium text-gray-300">Loyalty program</p>
+                        <p className="text-sm text-gray-400 mt-1">
+                          Spend ${loyalty.remaining.toFixed(2)} more (paid orders) to unlock {loyalty.discountPercent > 0 ? `${loyalty.discountPercent}% off` : 'rewards'}.
+                          Current: ${loyalty.spent.toFixed(2)} / ${loyalty.threshold.toFixed(2)}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
             <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-lg">
               <h2 className="mb-4 flex items-center gap-2 font-bold">
                 <Tag className="h-5 w-5 text-amber-400" />
@@ -475,6 +569,18 @@ export default function CheckoutUI({
                   <div className="flex justify-between text-emerald-400">
                     <span>Discount ({discountApplied.code})</span>
                     <span>-{formatPriceLabel(discountApplied.amount)}</span>
+                  </div>
+                )}
+                {loyaltyDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-400">
+                    <span>Loyalty ({loyalty?.discountPercent}%)</span>
+                    <span>-{formatPriceLabel(loyaltyDiscount)}</span>
+                  </div>
+                )}
+                {wantsSubscription && subscriptionEnabled && (
+                  <div className="flex justify-between text-cyan-400 text-xs">
+                    <span>Subscription</span>
+                    <span>{commitmentYears}yr · {subscriptionBillingLabel}</span>
                   </div>
                 )}
               </div>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
 import { billingDaysFromType } from '@/lib/subscriptionFromProduct'
+import { notifyProductAlerts } from '@/lib/productAlerts'
 
 export async function GET(
   req: Request,
@@ -64,6 +65,11 @@ export async function PUT(
       subscriptionEnabled, subscriptionBillingType, subscriptionIntervalDays,
     } = body
 
+    const existing = await prisma.product.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+    }
+
     const parsedEnableFetch = enableUsernameFetch === 'inherit' || enableUsernameFetch === null || enableUsernameFetch === undefined
       ? null
       : enableUsernameFetch === true || enableUsernameFetch === 'true'
@@ -102,6 +108,11 @@ export async function PUT(
         subscriptionIntervalDays: subscriptionEnabled ? intervalDays : 30,
       }
     })
+
+    const newStock = parseInt(stock)
+    if (existing.stock <= 0 && newStock > 0) {
+      await notifyProductAlerts(id, 'restock')
+    }
 
     return NextResponse.json(product)
   } catch (error) {

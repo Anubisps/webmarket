@@ -1,0 +1,10 @@
+// PWA install + activate only — do not intercept fetches (prevents broken offline fallbacks).
+self.addEventListener('install', (event) => {
+  event.waitUntil(self.skipWaiting())
+})
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).then(() => self.clients.claim())
+  )
+})

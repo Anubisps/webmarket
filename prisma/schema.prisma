@@ -24,7 +24,8 @@ model User {
   id            String    @id @default(cuid())
   username      String    @unique
   email         String    @unique
-  password      String
+  password      String?
+  image         String?
   pendingEmail    String?
   emailVerificationToken String?
   emailVerificationExpires DateTime?
@@ -55,6 +56,8 @@ model User {
   auditLogs     AuditLog[]
   userSessions  UserSession[]
   subscriptions Subscription[]
+  accounts      Account[]
+  productAlerts ProductAlert[]
 }
 
 model Category {
@@ -109,6 +112,7 @@ model Product {
   wishlists   WishlistItem[]
   bundleItems BundleItem[]
   subscriptions Subscription[]
+  productAlerts ProductAlert[]
 }
 
 model Order {
@@ -134,6 +138,8 @@ model Order {
   isSubscriptionRenewal Boolean @default(false)
   manualSubscriptionEnabled Boolean @default(false)
   subscriptionIntervalDays  Int?
+  wantsSubscription Boolean @default(false)
+  subscriptionCommitmentYears Int?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -515,6 +521,8 @@ model Subscription {
   paymentMethod String?
   ign           String?
   contactEmail  String?
+  commitmentYears Int?
+  commitmentEndDate DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -539,4 +547,39 @@ model UserSession {
 
   @@index([userId])
   @@index([lastActive])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model ProductAlert {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  alertType String   @default("restock")
+  notified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId, alertType])
+  @@index([productId, notified])
 }

@@ -5,6 +5,7 @@ import {
   ArrowRight, Search, Clock, CheckCircle, XCircle, AlertCircle, Package, CreditCard,
 } from 'lucide-react'
 import { formatPriceLabel } from '@/lib/formatPrice'
+import { formatDateTime } from '@/lib/formatDate'
 
 type OrderRow = {
   id: string
@@ -137,7 +138,7 @@ export function AdminOrdersBoard({ orders }: { orders: OrderRow[] }) {
                     <CreditCard className="h-3 w-3" />
                     {order.paymentMethod || 'manual'}
                   </span>
-                  <span>{new Date(order.createdAt).toLocaleString()}</span>
+                  <span>{formatDateTime(order.createdAt)}</span>
                 </div>
 
                 <Link

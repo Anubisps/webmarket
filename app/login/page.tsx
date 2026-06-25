@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Sparkles, User, Lock, ArrowRight, CheckCircle, XCircle, Shield, Mail } from 'lucide-react'
+import { Sparkles, User, Lock, ArrowRight, Shield } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
@@ -85,6 +85,32 @@ export default function LoginPage() {
           </div>
 
           {error && <p className="text-red-400 text-center mb-4">{error}</p>}
+
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+              className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium hover:bg-white/10 transition"
+            >
+              Continue with Google
+            </button>
+            <button
+              type="button"
+              onClick={() => signIn('discord', { callbackUrl: '/dashboard' })}
+              className="flex items-center justify-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm font-medium hover:bg-indigo-500/20 transition"
+            >
+              Continue with Discord
+            </button>
+          </div>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-[#12121a] px-3 text-gray-500">or sign in with username</span>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!show2FA ? (

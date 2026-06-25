@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { writeAuditLog } from '@/lib/auditLog'
+import { createUserNotification } from '@/lib/notifications'
 import { sendDiscordNotification } from '@/lib/events/discord'
 import { sendRefundReceipt } from '@/lib/email'
 
@@ -57,6 +58,12 @@ export async function processOrderRefund(params: {
   })
 
   await sendRefundReceipt(updatedOrder, updatedOrder.user, params.amount)
+  await createUserNotification(
+    order.userId,
+    fullyRefunded ? 'Full refund issued' : 'Partial refund issued',
+    `$${params.amount.toFixed(2)} refunded on order #${order.id.slice(0, 8)}${params.reason ? `. Reason: ${params.reason}` : ''}`,
+    `/dashboard/orders/${order.id}`
+  )
   await sendDiscordNotification('order.refund', {
     title: fullyRefunded ? 'Full refund issued' : 'Partial refund issued',
     description: `Order #${order.id.slice(0, 8)}`,

@@ -26,17 +26,31 @@ const PRIORITIES = [
 function NewTicketForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const orderId = searchParams.get('orderId')
+  const initialOrderId = searchParams.get('orderId')
+  const [linkedOrderId, setLinkedOrderId] = useState<string | null>(initialOrderId)
   const [form, setForm] = useState({ subject: '', message: '', category: 'Orders', priority: 'medium' })
   const [files, setFiles] = useState<File[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [loading, setLoading] = useState(false)
   const [orderInfo, setOrderInfo] = useState<any>(null)
+  const [userOrders, setUserOrders] = useState<{ id: string; total: number; status: string; items: { product: { name: string } }[] }[]>([])
 
   useEffect(() => {
-    if (!orderId) return
+    fetch('/api/orders')
+      .then(res => res.json())
+      .then(data => {
+        if (data.orders) setUserOrders(data.orders)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!linkedOrderId) {
+      setOrderInfo(null)
+      return
+    }
     setLoading(true)
-    fetch(`/api/orders/${orderId}`)
+    fetch(`/api/orders/${linkedOrderId}`)
       .then(res => res.json())
       .then(data => {
         if (data?.id) {
@@ -44,13 +58,13 @@ function NewTicketForm() {
           setForm(prev => ({
             ...prev,
             category: 'Orders',
-            subject: `Issue with Order #${data.id.slice(0, 8)}`,
+            subject: prev.subject || `Issue with Order #${data.id.slice(0, 8)}`,
           }))
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [orderId])
+  }, [linkedOrderId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,7 +81,7 @@ function NewTicketForm() {
         body: JSON.stringify({
           subject: form.subject.trim(),
           message: form.message.trim(),
-          orderId: orderId || null,
+          orderId: linkedOrderId || null,
           priority: form.priority,
           category: form.category,
         }),
@@ -118,14 +132,31 @@ function NewTicketForm() {
         </Link>
       }
     >
-      {orderId && loading ? (
+      {linkedOrderId && loading ? (
         <div className="flex items-center justify-center py-20 text-gray-400">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           Loading order details...
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
-          {orderId && orderInfo && (
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <label className="mb-2 block text-sm font-medium text-gray-300">Link to order (optional)</label>
+            <select
+              value={linkedOrderId || ''}
+              onChange={e => setLinkedOrderId(e.target.value || null)}
+              disabled={submitting}
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white focus:border-violet-500/50 focus:outline-none"
+            >
+              <option value="" className="bg-gray-900">No order linked</option>
+              {userOrders.map(o => (
+                <option key={o.id} value={o.id} className="bg-gray-900">
+                  #{o.id.slice(0, 8)} — {o.items[0]?.product?.name || 'Order'} (${o.total.toFixed(2)})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {linkedOrderId && orderInfo && (
             <div className="flex items-start gap-3 rounded-2xl border border-violet-500/20 bg-violet-500/10 p-4">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-violet-300" />
               <div>

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Heart, Trash2, Box } from 'lucide-react'
+import { productImageUrl } from '@/lib/productImage'
 
 export default function WishlistPage() {
   const [items, setItems] = useState<any[]>([])
@@ -76,7 +77,7 @@ export default function WishlistPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {items.map(item => {
             const firstImage = item.product?.images?.[0]
-            const imageSrc = firstImage ? `/api/images/products/${firstImage.split('/').pop()}` : null
+            const imageSrc = productImageUrl(firstImage)
             return (
               <div
                 key={item.id}

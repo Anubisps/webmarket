@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db'
 import { isProductPubliclyAvailable } from '@/lib/activeProduct'
 import { notFound } from 'next/navigation'
 import { formatPriceLabel } from '@/lib/formatPrice'
+import { productImageUrl } from '@/lib/productImage'
 import { 
   ArrowLeft, 
   ShoppingCart, 
@@ -17,6 +18,7 @@ import {
   Package
 } from 'lucide-react'
 import Link from 'next/link'
+import { ProductAlertButton } from '@/components/products/ProductAlertButton'
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -34,8 +36,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   }
 
   const firstImage = product.images && product.images.length > 0 ? product.images[0] : null
-  const imageSrc = firstImage ? `/api/images/products/${firstImage.split('/').pop()}` : null
-  const bannerSrc = product.bannerImage ? `/api/images/products/${product.bannerImage.split('/').pop()}` : null
+  const imageSrc = productImageUrl(firstImage)
+  const bannerSrc = productImageUrl(product.bannerImage)
 
   const stockStatus = product.stock > 0 ? 'In Stock' : 'Out of Stock'
   const isOutOfStock = product.stock <= 0
@@ -245,6 +247,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 <ShoppingCart className="w-5 h-5 inline mr-2" />
                 {isOutOfStock ? 'Out of Stock' : 'Buy Now'}
               </Link>
+              {isOutOfStock && (
+                <div className="mt-4 flex justify-center">
+                  <ProductAlertButton productId={product.id} outOfStock={isOutOfStock} />
+                </div>
+              )}
             </div>
           </div>
         </div>

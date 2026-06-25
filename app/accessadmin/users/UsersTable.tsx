@@ -12,6 +12,7 @@ import {
   Box,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { formatDate } from '@/lib/formatDate'
 
 interface AdminUser {
   id: string
@@ -126,7 +127,7 @@ export function UsersTable({
                   <td className="px-6 py-4 text-sm text-gray-400">
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {new Date(u.createdAt).toLocaleDateString()}
+                      {formatDate(u.createdAt)}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">

@@ -6,6 +6,7 @@ import { ArrowLeft, Sparkles, Package, Save, Box, Edit, Upload, Image as ImageIc
 import toast from 'react-hot-toast'
 import { revalidateHomepage } from '@/app/actions/productActions'
 import { ProductSubscriptionFields } from '@/components/admin/ProductSubscriptionFields'
+import { productImageUrl } from '@/lib/productImage'
 
 // Loading error component
 function ProductLoadingError({ onRetry }: { onRetry: () => void }) {
@@ -185,7 +186,7 @@ export default function EditProductPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        setProductImage(data.images && data.images.length > 0 ? data.images[0] : '')
+        setProductImage(data.imageUrl || (data.images && data.images.length > 0 ? data.images[0] : ''))
         toast.success('Product image uploaded successfully')
       } else {
         toast.error('Failed to upload product image')
@@ -274,7 +275,7 @@ export default function EditProductPage() {
           <div className="flex gap-2">
             {productImage && (
               <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-white/10">
-                <img src={`/api/images/products/${productImage.split('/').pop()}`} alt="Product" className="w-full h-full object-cover" />
+                <img src={productImageUrl(productImage) || ''} alt="Product" className="w-full h-full object-cover" />
                 <button
                   onClick={removeProductImage}
                   className="absolute top-0 right-0 p-1 bg-red-500/80 hover:bg-red-500 text-white text-xs rounded-bl-lg transition-colors"
@@ -302,7 +303,7 @@ export default function EditProductPage() {
           <div className="flex gap-2">
             {form.bannerImage && (
               <div className="relative w-32 h-20 rounded-lg overflow-hidden border border-white/10">
-                <img src={form.bannerImage} alt="Banner" className="w-full h-full object-cover" />
+                <img src={productImageUrl(form.bannerImage) || form.bannerImage} alt="Banner" className="w-full h-full object-cover" />
                 <button
                   onClick={removeBannerImage}
                   className="absolute top-0 right-0 p-1 bg-red-500/80 hover:bg-red-500 text-white text-xs rounded-bl-lg transition-colors"

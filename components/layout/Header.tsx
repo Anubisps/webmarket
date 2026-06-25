@@ -4,7 +4,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import { useSettings } from '@/context/SettingsContext'
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown'
-import { Menu, X, Home, ShoppingBag, Info, HelpCircle, Mail, LayoutDashboard } from 'lucide-react'
+import { Menu, X, Home, ShoppingBag, Info, HelpCircle, Mail, LayoutDashboard, Bell } from 'lucide-react'
 import { useState } from 'react'
 import { UnreadBadge } from '@/components/ui/UnreadBadge'
 
@@ -62,6 +62,14 @@ export function Header() {
             <div className="text-sm text-purple-200 animate-pulse">Loading...</div>
           ) : session ? (
             <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard/notifications"
+                className="relative hidden sm:flex p-2 rounded-lg text-purple-200 hover:bg-white/10 hover:text-white transition"
+                aria-label="Notifications"
+              >
+                <Bell className="w-5 h-5" />
+                <UnreadBadge className="absolute -top-0.5 -right-0.5" />
+              </Link>
               <Link
                 href="/dashboard"
                 className="relative px-4 py-2 rounded-lg bg-white text-indigo-900 font-semibold hover:scale-105 transition flex items-center gap-2"

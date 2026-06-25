@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { isProductPubliclyAvailable } from '@/lib/activeProduct'
 import { resolveGameIdSettings } from '@/lib/checkoutGameId'
+import { getUserLoyalty } from '@/lib/loyalty'
+import { subscriptionBillingLabel } from '@/lib/subscriptionFromProduct'
 import CheckoutUI from './CheckoutUI'
 
 interface PaymentMethod {
@@ -36,6 +38,7 @@ export default async function CheckoutPage({ params, searchParams }: { params: P
   }
 
   const { fetchEnabled, fetchProvider, gameIdLabel } = resolveGameIdSettings(product)
+  const loyalty = await getUserLoyalty(user.id)
 
   let methods: PaymentMethod[] = []
   try {
@@ -63,6 +66,8 @@ export default async function CheckoutPage({ params, searchParams }: { params: P
     )
   }
 
+  const subscriptionIntervalDays = product.subscriptionIntervalDays || 30
+
   return (
     <CheckoutUI
       productId={product.id}
@@ -75,6 +80,16 @@ export default async function CheckoutPage({ params, searchParams }: { params: P
       fetchProvider={fetchProvider}
       gameIdLabel={gameIdLabel}
       subscriptionId={subscriptionId || undefined}
+      subscriptionEnabled={!subscriptionId && product.subscriptionEnabled}
+      subscriptionBillingLabel={subscriptionBillingLabel(product.subscriptionBillingType, subscriptionIntervalDays)}
+      subscriptionIntervalDays={subscriptionIntervalDays}
+      loyalty={{
+        qualified: loyalty.qualified,
+        discountPercent: loyalty.discountPercent,
+        spent: loyalty.spent,
+        threshold: loyalty.threshold,
+        remaining: loyalty.remaining,
+      }}
     />
   )
 }

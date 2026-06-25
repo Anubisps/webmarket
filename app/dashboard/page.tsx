@@ -2,9 +2,10 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
-import { ShoppingBag, Ticket, Shield, ArrowRight, CheckCircle, XCircle, TrendingUp, Clock, User, Star, Box, Gift } from 'lucide-react'
+import { ShoppingBag, Ticket, Shield, ArrowRight, CheckCircle, XCircle, TrendingUp, Clock, Gift, Bell, Award } from 'lucide-react'
 import { UnreadBadge } from '@/components/ui/UnreadBadge'
 import { EmailVerifyBanner } from '@/components/dashboard/EmailVerifyBanner'
+import { getUserLoyalty } from '@/lib/loyalty'
 
 export default async function DashboardPage() {
   const session = await getServerSession()
@@ -24,6 +25,7 @@ export default async function DashboardPage() {
     where: { userId: user.id }
   })
 
+  const loyalty = await getUserLoyalty(user.id)
   const has2FA = user.twoFactorSecret !== null
 
   return (
@@ -100,8 +102,38 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link href="/dashboard/orders" className="group bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-emerald-500/50 hover:shadow-[0_0_40px_rgba(16,185,129,0.1)] transition-all flex flex-col">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Link href="/dashboard/notifications" className="group relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-violet-500/50 transition-all flex flex-col">
+            <UnreadBadge className="absolute top-4 right-4" />
+            <div className="flex items-center gap-4 mb-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500">
+                <Bell className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold">Notifications</h3>
+            </div>
+            <p className="text-gray-400 text-sm flex-1">Order updates, refunds, restock alerts, and support replies.</p>
+            <div className="mt-4 flex items-center justify-end gap-1 text-violet-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
+              Open inbox <ArrowRight className="w-3 h-3" />
+            </div>
+          </Link>
+
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 flex flex-col">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500">
+                <Award className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold">Loyalty</h3>
+            </div>
+            {loyalty.qualified ? (
+              <p className="text-emerald-400 text-sm flex-1">{loyalty.discountPercent}% off every order — thank you for your support!</p>
+            ) : (
+              <p className="text-gray-400 text-sm flex-1">
+                ${loyalty.spent.toFixed(2)} spent · ${loyalty.remaining.toFixed(2)} until {loyalty.discountPercent}% off
+              </p>
+            )}
+          </div>
+
+          <Link href="/dashboard/orders" className="group bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-emerald-500/50 transition-all flex flex-col">
             <div className="flex items-center gap-4 mb-3">
               <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500">
                 <ShoppingBag className="w-6 h-6 text-white" />

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { writeAuditLog } from '@/lib/auditLog'
+import { createUserNotification } from '@/lib/notifications'
 import { sendDiscordNotification } from '@/lib/events/discord'
 import { sendPaymentReceipt, sendOrderFulfilled } from '@/lib/email'
 import { maybeCreateSubscriptionFromOrder } from '@/lib/subscriptionFromProduct'
@@ -46,6 +47,12 @@ export async function confirmOrderPayment(params: {
 
   await sendPaymentReceipt(updated, updated.user)
   await maybeCreateSubscriptionFromOrder(order.id)
+  await createUserNotification(
+    order.userId,
+    'Payment confirmed',
+    `Your order #${order.id.slice(0, 8)} payment was confirmed.`,
+    `/dashboard/orders/${order.id}`
+  )
   await sendDiscordNotification('order.paid', {
     title: 'Payment confirmed',
     description: `Order #${order.id.slice(0, 8)} paid via ${params.source}`,
@@ -74,7 +81,7 @@ export async function fulfillOrder(params: {
       status: 'completed',
     },
     include: {
-      user: { select: { email: true, username: true } },
+      user: { select: { id: true, email: true, username: true } },
       items: { include: { product: { select: { name: true } } } },
     },
   })
@@ -88,6 +95,14 @@ export async function fulfillOrder(params: {
   })
 
   await sendOrderFulfilled(order, order.user)
+  await createUserNotification(
+    order.user.id,
+    'Order fulfilled',
+    params.note?.trim()
+      ? `Order #${order.id.slice(0, 8)} has been delivered. Note: ${params.note.trim()}`
+      : `Order #${order.id.slice(0, 8)} has been delivered.`,
+    `/dashboard/orders/${order.id}`
+  )
   await sendDiscordNotification('order.fulfilled', {
     title: 'Order fulfilled',
     description: `Order #${order.id.slice(0, 8)} marked fulfilled`,

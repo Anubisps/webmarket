@@ -2,7 +2,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { User, Shield, LogOut, Settings } from 'lucide-react'
+import { User, Shield, LogOut, Settings, Bell } from 'lucide-react'
+import { UnreadBadge } from '@/components/ui/UnreadBadge'
 
 export function ProfileDropdown() {
   const { data: session } = useSession()
@@ -57,6 +58,15 @@ export function ProfileDropdown() {
             <p className="text-xs text-gray-500 capitalize">{role}</p>
           </div>
           <div className="p-2">
+            <Link
+              href="/dashboard/notifications"
+              onClick={() => setOpen(false)}
+              className="relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-gray-900"
+            >
+              <Bell className="w-4 h-4" />
+              Notifications
+              <UnreadBadge className="ml-auto static" />
+            </Link>
             <Link
               href="/dashboard/profile"
               onClick={() => setOpen(false)}
