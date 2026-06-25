@@ -17,22 +17,26 @@ interface CheckoutUIProps {
   productId: string
   productName: string
   price: number
+  variants?: { id: string; name: string; price?: number }[]
   methods: PaymentMethod[]
   userId: string
   fetchEnabled: boolean
   fetchProvider: string
   gameIdLabel: string
+  subscriptionId?: string
 }
 
 export default function CheckoutUI({
   productId,
   productName,
   price,
+  variants = [],
   methods,
   userId,
   fetchEnabled,
   fetchProvider,
   gameIdLabel,
+  subscriptionId,
 }: CheckoutUIProps) {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
@@ -53,8 +57,12 @@ export default function CheckoutUI({
   const [selectedMethodDetails, setSelectedMethodDetails] = useState<PaymentMethod | null>(null)
   const [fetchedUsername, setFetchedUsername] = useState<string | null>(null)
   const [csrfToken, setCsrfToken] = useState<string>('')
+  const [selectedVariantId, setSelectedVariantId] = useState<string>('')
   
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
+
+  const selectedVariant = variants.find(v => v.id === selectedVariantId)
+  const unitPrice = selectedVariant?.price ?? price
 
   // ✅ Wait for the component to mount on the client
   useEffect(() => {
@@ -73,7 +81,7 @@ export default function CheckoutUI({
     }
   }, [mounted])
 
-  const finalPrice = Math.max(price - (discountApplied?.amount || 0), 0)
+  const finalPrice = Math.max(unitPrice - (discountApplied?.amount || 0), 0)
 
   // ✅ Button disabled check (only after mounted)
   const isButtonDisabled = !mounted || loading || !selectedMethod || !ign.trim() || !contactEmail.trim() || !csrfToken
@@ -192,7 +200,9 @@ export default function CheckoutUI({
           ignUsername: fetchEnabled ? fetchedUsername : null,
           contactEmail: contactEmail.trim(),
           discountCode: discountApplied?.code || null,
-          referralCode: null
+          referralCode: null,
+          variantId: selectedVariantId || null,
+          subscriptionId: subscriptionId || null,
         })
       })
 
@@ -350,6 +360,33 @@ export default function CheckoutUI({
               </div>
             </section>
 
+            {variants.length > 0 && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-lg">
+                <h2 className="mb-4 font-bold">Product option</h2>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {variants.map(v => (
+                    <label
+                      key={v.id}
+                      className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 ${
+                        selectedVariantId === v.id ? 'border-violet-500/50 bg-violet-500/10' : 'border-white/10 bg-black/20'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="variant"
+                          checked={selectedVariantId === v.id}
+                          onChange={() => setSelectedVariantId(v.id)}
+                        />
+                        {v.name}
+                      </span>
+                      <span className="text-sm text-violet-300">{formatPriceLabel(v.price ?? price)}</span>
+                    </label>
+                  ))}
+                </div>
+              </section>
+            )}
+
             <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-lg">
               <h2 className="mb-4 flex items-center gap-2 font-bold">
                 <Tag className="h-5 w-5 text-amber-400" />
@@ -432,7 +469,7 @@ export default function CheckoutUI({
               <div className="mb-4 space-y-2 border-b border-white/10 pb-4 text-sm">
                 <div className="flex justify-between text-gray-400">
                   <span>Subtotal</span>
-                  <span>{formatPriceLabel(price)}</span>
+                  <span>{formatPriceLabel(unitPrice)}</span>
                 </div>
                 {discountApplied && (
                   <div className="flex justify-between text-emerald-400">

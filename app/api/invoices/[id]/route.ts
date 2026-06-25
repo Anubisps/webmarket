@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
 import jsPDF from 'jspdf'
+import { formatPriceLabel } from '@/lib/formatPrice'
 
 async function getPdfWithAutoTable() {
   const { default: autoTable } = await import('jspdf-autotable')
@@ -9,7 +10,7 @@ async function getPdfWithAutoTable() {
 }
 
 function formatMoney(value: number) {
-  return `$${value.toFixed(2)} USD`
+  return formatPriceLabel(value)
 }
 
 function paymentStatusLabel(status: string) {

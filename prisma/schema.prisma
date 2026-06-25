@@ -52,6 +52,9 @@ model User {
   twoFactorDevices TwoFactorDevice[]
   referrer      User?      @relation("UserReferral", fields: [referredBy], references: [id])
   referredUsers User[]     @relation("UserReferral")
+  auditLogs     AuditLog[]
+  userSessions  UserSession[]
+  subscriptions Subscription[]
 }
 
 model Category {
@@ -94,6 +97,9 @@ model Product {
   enableUsernameFetch Boolean?
   fetchProvider       String?
   gameIdLabel         String?
+  subscriptionEnabled Boolean @default(false)
+  subscriptionBillingType String @default("monthly")
+  subscriptionIntervalDays Int @default(30)
   categoryId  String?
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   order Int @default(0)
@@ -102,6 +108,7 @@ model Product {
   orderItems  OrderItem[]
   wishlists   WishlistItem[]
   bundleItems BundleItem[]
+  subscriptions Subscription[]
 }
 
 model Order {
@@ -120,6 +127,13 @@ model Order {
   notes       String?
   ticketId    String?
   bannerImage String?
+  fulfillmentStatus String @default("pending")
+  fulfilledAt DateTime?
+  refundTotal Float @default(0)
+  subscriptionId String?
+  isSubscriptionRenewal Boolean @default(false)
+  manualSubscriptionEnabled Boolean @default(false)
+  subscriptionIntervalDays  Int?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -128,6 +142,8 @@ model Order {
   disputes    Dispute[]
   ticket      Ticket?   @relation("OrderTicket")
   affiliateReferrals AffiliateReferral[]
+  refunds     OrderRefund[]
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
 }
 
 model OrderItem {
@@ -166,6 +182,8 @@ model Ticket {
   priority    String    @default("medium")
   assignedTo  String?
   closedAt    DateTime?
+  slaDueAt    DateTime?
+  liveChatSessionId String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -310,6 +328,7 @@ model Affiliate {
 
   user        User      @relation(fields: [userId], references: [id])
   referrals   AffiliateReferral[]
+  payoutRequests AffiliatePayoutRequest[]
 }
 
 model AffiliateReferral {
@@ -426,4 +445,98 @@ model AnalyticsEvent {
   @@index([timestamp])
   @@index([userId])
   @@index([isLoggedIn])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  actorEmail String?
+  action     String
+  entity     String
+  entityId   String?
+  details    Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model OrderRefund {
+  id        String   @id @default(cuid())
+  orderId   String
+  amount    Float
+  reason    String?
+  status    String   @default("completed")
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model CannedReply {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  category  String   @default("general")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AffiliatePayoutRequest {
+  id          String   @id @default(cuid())
+  affiliateId String
+  amount      Float
+  status      String   @default("pending")
+  note        String?
+  adminNote   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+
+  @@index([affiliateId])
+  @@index([status])
+}
+
+model Subscription {
+  id            String   @id @default(cuid())
+  userId        String
+  productId     String
+  intervalDays  Int      @default(30)
+  price         Float
+  status        String   @default("active")
+  nextDueDate   DateTime
+  lastOrderId   String?
+  paymentMethod String?
+  ign           String?
+  contactEmail  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product       Product  @relation(fields: [productId], references: [id])
+  orders        Order[]
+
+  @@index([userId])
+  @@index([status, nextDueDate])
+}
+
+model UserSession {
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  ipAddress  String?
+  userAgent  String?
+  lastActive DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([lastActive])
 }

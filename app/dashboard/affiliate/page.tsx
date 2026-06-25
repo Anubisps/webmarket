@@ -7,12 +7,15 @@ import {
   Gift, Copy, Users, Share2, Wallet, History, CheckCircle, XCircle,
   Loader2, Sparkles, TrendingUp, MessageCircle, ArrowRight, ExternalLink,
 } from 'lucide-react'
+import { csrfHeaders } from '@/lib/csrfClient'
 
 function AffiliateContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
   const [showPopup, setShowPopup] = useState(false)
+  const [payoutAmount, setPayoutAmount] = useState('')
+  const [payoutNote, setPayoutNote] = useState('')
 
   useEffect(() => {
     fetch('/api/affiliate/user-dashboard')
@@ -56,8 +59,22 @@ function AffiliateContent() {
 
   const {
     affiliate, referredUsers, totalEarnings, totalReferredUsers,
-    totalPurchased, totalPending, referralLink, balance,
+    totalPurchased, totalPending, referralLink, balance, referralAnalytics = [],
   } = data
+
+  const requestPayout = async () => {
+    const res = await fetch('/api/affiliate/payouts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
+      body: JSON.stringify({ amount: payoutAmount, note: payoutNote }),
+    })
+    const json = await res.json()
+    if (res.ok) {
+      toast.success('Payout request submitted')
+      setPayoutAmount('')
+      window.location.reload()
+    } else toast.error(json.error || 'Request failed')
+  }
 
   return (
     <>
@@ -121,6 +138,48 @@ function AffiliateContent() {
           </div>
         </div>
       </div>
+
+      <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-6">
+        <h2 className="mb-4 flex items-center gap-2 font-bold">
+          <Wallet className="h-5 w-5 text-amber-400" />
+          Request payout
+        </h2>
+        <div className="flex flex-wrap gap-3">
+          <input
+            type="number"
+            step="0.01"
+            max={balance}
+            placeholder="Amount (USD)"
+            value={payoutAmount}
+            onChange={e => setPayoutAmount(e.target.value)}
+            className="rounded-xl border border-white/10 bg-black/30 px-4 py-2 text-white"
+          />
+          <input
+            placeholder="Note (optional)"
+            value={payoutNote}
+            onChange={e => setPayoutNote(e.target.value)}
+            className="flex-1 min-w-[200px] rounded-xl border border-white/10 bg-black/30 px-4 py-2 text-white"
+          />
+          <button onClick={requestPayout} className="rounded-xl bg-amber-600 px-5 py-2 font-medium">
+            Submit request
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-gray-500">Available balance: ${balance.toFixed(2)} USD</p>
+      </div>
+
+      {referralAnalytics.length > 0 && (
+        <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-6">
+          <h2 className="mb-4 font-bold">Referral earnings by month</h2>
+          <div className="space-y-2">
+            {referralAnalytics.map((row: { month: string; commission: number }) => (
+              <div key={row.month} className="flex justify-between rounded-lg bg-black/20 px-3 py-2 text-sm">
+                <span>{row.month}</span>
+                <span className="text-emerald-400">${row.commission.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-6">
         <h2 className="mb-4 flex items-center gap-2 font-bold">

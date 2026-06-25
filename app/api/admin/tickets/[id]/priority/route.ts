@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
+import { computeSlaDueAt } from '@/lib/tickets/sla'
 
 export async function PUT(
   request: Request,
@@ -29,7 +30,7 @@ export async function PUT(
 
     const ticket = await prisma.ticket.update({
       where: { id },
-      data: { priority },
+      data: { priority, slaDueAt: computeSlaDueAt(priority) },
       include: {
         user: {
           select: { username: true, email: true }

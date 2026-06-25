@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
+import { parseBrowser } from '@/lib/geoip'
+import { formatIpForDisplay, isPrivateOrLoopbackIp, normalizeIp } from '@/lib/getClientIp'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 function isSessionActive(lastTimestamp: Date): boolean {
   return lastTimestamp > new Date(Date.now() - 5 * 60 * 1000)
@@ -114,26 +119,36 @@ export async function GET() {
       const first = sorted[0]
       const last = sorted[sorted.length - 1]
       const active = isSessionActive(last.timestamp)
-      const loggedInEvent = sorted.find(e => e.isLoggedIn)
+      const geoExtra = (last.extra as { country?: string; city?: string; region?: string } | null) || {}
+      const rawIp = last.ip || first.ip || 'unknown'
+      const ip = normalizeIp(rawIp)
       return {
         sessionId,
-        ip: first.ip || 'unknown',
-        userAgent: first.userAgent || '',
-        device: parseDevice(first.userAgent || ''),
+        ip: formatIpForDisplay(ip),
+        rawIp: isPrivateOrLoopbackIp(ip) ? null : ip,
+        userAgent: last.userAgent || first.userAgent || '',
+        device: parseDevice(last.userAgent || first.userAgent || ''),
+        browser: parseBrowser(last.userAgent || first.userAgent || ''),
+        referer: last.referer || first.referer || '',
         firstVisit: first.timestamp.toISOString(),
         lastVisit: last.timestamp.toISOString(),
         active,
         duration: active ? 'Online now' : formatDuration(first.timestamp, last.timestamp),
         pages: [...new Set(sorted.map(e => e.path))],
         pageCount: sorted.length,
-        isLoggedIn: !!loggedInEvent,
-        username: loggedInEvent?.username || null,
-        userId: loggedInEvent?.userId || null,
+        isLoggedIn: last.isLoggedIn,
+        username: last.username || null,
+        userId: last.userId || null,
+        country: geoExtra.country || null,
+        city: geoExtra.city || null,
+        region: geoExtra.region || null,
         currentPage: last.path,
+        isResolvable: !isPrivateOrLoopbackIp(ip),
       }
     })
 
-    const activeSessions = sessions.filter(s => s.active).sort(
+    const resolvableSessions = sessions.filter(s => s.isResolvable)
+    const activeSessions = resolvableSessions.filter(s => s.active).sort(
       (a, b) => new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime()
     )
     const onlineLoggedIn = activeSessions.filter(s => s.isLoggedIn)
@@ -178,7 +193,7 @@ export async function GET() {
         totalOrders,
         totalUsers,
         totalProducts,
-        totalSessions: sessions.length,
+        totalSessions: resolvableSessions.length,
         activeNow: activeSessions.length,
         onlineLoggedIn: onlineLoggedIn.length,
         onlineGuests: onlineGuests.length,

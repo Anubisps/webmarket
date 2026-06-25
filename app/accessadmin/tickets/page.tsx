@@ -60,7 +60,11 @@ export default async function AdminTickets() {
         </div>
 
         <AdminTicketsBoard
-          tickets={tickets.map(t => ({ ...t, createdAt: t.createdAt.toISOString() }))}
+          tickets={tickets.map(t => ({
+            ...t,
+            createdAt: t.createdAt.toISOString(),
+            slaDueAt: t.slaDueAt?.toISOString() || null,
+          }))}
         />
       </div>
     </div>

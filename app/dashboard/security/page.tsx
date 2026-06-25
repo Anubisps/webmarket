@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
 import { Shield, Smartphone, Globe, Clock, CheckCircle, XCircle, AlertCircle, Box, ArrowRight, User, Mail, Lock } from 'lucide-react'
+import { SessionManager } from '@/components/dashboard/SessionManager'
 
 export default async function SecurityPage() {
   const session = await getServerSession()
@@ -133,6 +134,8 @@ export default async function SecurityPage() {
             )}
           </div>
         </div>
+
+        <SessionManager />
 
         {/* ===== ACCOUNT INFO CARD ===== */}
         <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 relative z-10 hover:border-purple-500/30 transition-all">

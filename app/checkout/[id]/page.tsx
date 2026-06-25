@@ -12,8 +12,9 @@ interface PaymentMethod {
   walletAddress: string | null
 }
 
-export default async function CheckoutPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CheckoutPage({ params, searchParams }: { params: Promise<{ id: string }>, searchParams: Promise<{ subscriptionId?: string }> }) {
   const { id } = await params
+  const { subscriptionId } = await searchParams
   const session = await getServerSession()
   if (!session?.user?.email) redirect('/login')
 
@@ -67,11 +68,13 @@ export default async function CheckoutPage({ params }: { params: Promise<{ id: s
       productId={product.id}
       productName={product.name}
       price={product.price}
+      variants={Array.isArray(product.variants) ? product.variants as { id: string; name: string; price?: number }[] : []}
       methods={methods}
       userId={user.id}
       fetchEnabled={fetchEnabled}
       fetchProvider={fetchProvider}
       gameIdLabel={gameIdLabel}
+      subscriptionId={subscriptionId || undefined}
     />
   )
 }

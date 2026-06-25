@@ -1,16 +1,19 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth'
+import { getToken } from 'next-auth/jwt'
 import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
+import { getClientIp } from '@/lib/getClientIp'
+import { lookupGeo } from '@/lib/geoip'
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions)
     let userId: string | null = null
     let username: string | null = null
     let isLoggedIn = false
     let skipTracking = false
 
+    const session = await getServerSession(authOptions)
     if (session?.user?.email) {
       const user = await prisma.user.findUnique({
         where: { email: session.user.email },
@@ -27,31 +30,47 @@ export async function POST(req: Request) {
       }
     }
 
+    if (!isLoggedIn) {
+      const token = await getToken({
+        req: req as Parameters<typeof getToken>[0]['req'],
+        secret: process.env.NEXTAUTH_SECRET,
+      })
+      if (token?.id && token?.role && !['admin', 'manager'].includes(String(token.role))) {
+        userId = String(token.id)
+        username = String(token.username || token.name || '')
+        isLoggedIn = true
+      }
+    }
+
     if (skipTracking) {
       return NextResponse.json({ success: true, skipped: 'admin' })
     }
 
     const body = await req.json()
-    const { path, method, ip, userAgent, referer, query, sessionId } = body
+    const { path, method, referer, query, sessionId } = body
 
-    const isLocal = ip === '::1' || ip === '127.0.0.1' || ip === '::ffff:127.0.0.1'
-    if (isLocal) {
-      return NextResponse.json({ success: true, skipped: 'localhost' })
+    const ip = getClientIp(req)
+    if (!ip) {
+      return NextResponse.json({ success: true, skipped: 'no_public_ip' })
     }
+
+    const userAgent = body.userAgent || req.headers.get('user-agent') || ''
+    const geo = await lookupGeo(ip)
 
     await prisma.analyticsEvent.create({
       data: {
         sessionId: sessionId || 'anonymous',
         path: path || '/',
         method: method || 'GET',
-        ip: ip || 'unknown',
-        userAgent: userAgent || '',
+        ip,
+        userAgent,
         referer: referer || '',
         query: query || '',
         eventType: 'pageview',
         userId,
         username,
         isLoggedIn,
+        extra: geo.country ? geo : undefined,
       },
     })
 

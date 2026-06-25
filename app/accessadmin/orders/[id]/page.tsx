@@ -2,8 +2,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle, Clock, XCircle, AlertCircle, Box, User, Mail, CreditCard, Package, Sparkles, Edit, Save, Trash2, Plus, MessageCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, XCircle, AlertCircle, Box, User, Mail, CreditCard, Package, Edit, Trash2, Plus, MessageCircle, Truck, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { csrfHeaders } from '@/lib/csrfClient'
+import { formatPriceLabel } from '@/lib/formatPrice'
 
 interface OrderItem {
   id: string
@@ -27,6 +29,8 @@ export default function ManageOrderPage() {
   const [discountAmount, setDiscountAmount] = useState('')
   const [items, setItems] = useState<OrderItem[]>([])
   const [updating, setUpdating] = useState(false)
+  const [refundAmount, setRefundAmount] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetch(`/api/admin/orders/${id}`)
@@ -90,7 +94,7 @@ export default function ManageOrderPage() {
     try {
       const res = await fetch(`/api/admin/orders/${id}/payment`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ paymentStatus })
       })
       if (res.ok) {
@@ -143,6 +147,42 @@ export default function ManageOrderPage() {
     }
   }
 
+  const fulfillOrderAction = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/admin/orders/${id}/fulfill`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ note: staffNote }),
+      })
+      if (res.ok) {
+        toast.success('Order fulfilled')
+        setOrder(await res.json())
+      } else toast.error('Fulfillment failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const issueRefund = async (partial: boolean) => {
+    setLoading(true)
+    try {
+      const amount = partial ? parseFloat(refundAmount) : undefined
+      const res = await fetch(`/api/admin/orders/${id}/refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ amount, reason: staffNote }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success('Refund processed')
+        setOrder(data.order)
+      } else toast.error(data.error || 'Refund failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const updateItem = (index: number, field: string, value: any) => {
     const newItems = [...items]
     newItems[index] = { ...newItems[index], [field]: value }
@@ -159,6 +199,26 @@ export default function ManageOrderPage() {
       return
     }
     setItems(items.filter((_, i) => i !== index))
+  }
+
+  const deleteOrder = async () => {
+    if (!confirm('Permanently delete this order? Stock will be restored. This cannot be undone.')) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method: 'DELETE',
+        headers: csrfHeaders(),
+      })
+      if (res.ok) {
+        toast.success('Order deleted')
+        router.push('/accessadmin/orders')
+      } else {
+        const data = await res.json()
+        toast.error(data.error || 'Failed to delete order')
+      }
+    } finally {
+      setDeleting(false)
+    }
   }
 
   if (loading) return <div className="p-8 text-center text-gray-400">Loading order...</div>
@@ -199,13 +259,23 @@ export default function ManageOrderPage() {
           </h1>
           <p className="text-gray-400 text-lg">Update order status, details, and items.</p>
         </div>
-        <Link
-          href="/accessadmin/orders"
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all mt-4 md:mt-0"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Orders
-        </Link>
+        <div className="flex flex-wrap items-center gap-3 mt-4 md:mt-0">
+          <Link
+            href="/accessadmin/orders"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Orders
+          </Link>
+          <button
+            onClick={deleteOrder}
+            disabled={deleting}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 transition-all disabled:opacity-50"
+          >
+            <Trash2 className="w-4 h-4" />
+            {deleting ? 'Deleting...' : 'Delete Order'}
+          </button>
+        </div>
       </div>
 
       {success && <p className="text-emerald-400 mb-4">{success}</p>}
@@ -244,10 +314,13 @@ export default function ManageOrderPage() {
               <div className="bg-black/30 rounded-xl p-4 border border-white/5">
                 <p className="text-sm text-gray-400">Total Amount</p>
                 <p className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-                  {finalTotal.toFixed(2)} USD
+                  {formatPriceLabel(finalTotal)}
                 </p>
                 {parseFloat(discountAmount) > 0 && (
-                  <p className="text-xs text-green-400">Discount: -{discountAmount} USD</p>
+                  <p className="text-xs text-green-400">Discount: -{formatPriceLabel(parseFloat(discountAmount))}</p>
+                )}
+                {order.refundTotal > 0 && (
+                  <p className="text-xs text-rose-400">Refunded: {formatPriceLabel(order.refundTotal)}</p>
                 )}
               </div>
               <div className="bg-black/30 rounded-xl p-4 border border-white/5">
@@ -388,6 +461,47 @@ export default function ManageOrderPage() {
                   {status}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6">
+            <h3 className="font-bold mb-3 text-gray-200 flex items-center gap-2">
+              <Truck className="w-4 h-4 text-cyan-400" /> Fulfillment
+            </h3>
+            <p className="text-sm text-gray-400 mb-3 capitalize">Status: {order.fulfillmentStatus || 'pending'}</p>
+            <button
+              onClick={fulfillOrderAction}
+              disabled={loading || order.fulfillmentStatus === 'fulfilled'}
+              className="w-full mb-4 px-3 py-2 rounded-xl bg-cyan-600/20 text-cyan-300 text-sm hover:bg-cyan-600/30 disabled:opacity-50"
+            >
+              Mark fulfilled & notify customer
+            </button>
+            {order.ticket && (
+              <Link href={`/accessadmin/tickets/${order.ticket.id}`} className="text-sm text-violet-400 hover:underline">
+                View linked ticket →
+              </Link>
+            )}
+          </div>
+
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6">
+            <h3 className="font-bold mb-3 text-gray-200 flex items-center gap-2">
+              <RotateCcw className="w-4 h-4 text-rose-400" /> Refunds
+            </h3>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Partial amount"
+              value={refundAmount}
+              onChange={e => setRefundAmount(e.target.value)}
+              className="w-full mb-2 px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-white text-sm"
+            />
+            <div className="flex flex-col gap-2">
+              <button onClick={() => issueRefund(true)} disabled={loading} className="px-3 py-2 rounded-xl bg-rose-500/15 text-rose-300 text-sm">
+                Partial refund
+              </button>
+              <button onClick={() => issueRefund(false)} disabled={loading} className="px-3 py-2 rounded-xl bg-rose-600/20 text-rose-200 text-sm">
+                Full refund
+              </button>
             </div>
           </div>
 

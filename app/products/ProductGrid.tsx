@@ -13,6 +13,7 @@ export function ProductGrid() {
   const [search, setSearch] = useState('')
   const [selectedCategoryId, setSelectedCategoryId] = useState('')
   const [sort, setSort] = useState('featured')
+  const [inStockOnly, setInStockOnly] = useState(false)
   const [searchInput, setSearchInput] = useState('')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   
@@ -22,9 +23,11 @@ export function ProductGrid() {
     const searchParam = searchParams?.get('search') || ''
     const categoryParam = searchParams?.get('categoryId') || ''
     const sortParam = searchParams?.get('sort') || 'featured'
+    const inStockParam = searchParams?.get('inStock') === '1'
     setSearch(searchParam)
     setSelectedCategoryId(categoryParam)
     setSort(sortParam)
+    setInStockOnly(inStockParam)
     setSearchInput(searchParam)
   }, [searchParams])
 
@@ -45,6 +48,7 @@ export function ProductGrid() {
           params.set('categoryId', selectedCategoryId)
         }
         if (sort) params.set('sort', sort)
+        if (inStockOnly) params.set('inStock', '1')
         const res = await fetch(`/api/products?${params.toString()}`)
         const data = await res.json()
         if (res.ok && Array.isArray(data)) {
@@ -60,7 +64,7 @@ export function ProductGrid() {
       }
     }
     fetchProducts()
-  }, [search, selectedCategoryId, sort])
+  }, [search, selectedCategoryId, sort, inStockOnly])
 
   const handleSearchChange = (value: string) => {
     setSearchInput(value)
@@ -211,6 +215,23 @@ export function ProductGrid() {
 
               {/* Sort Dropdown & Clear Filters */}
               <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={inStockOnly}
+                    onChange={(e) => {
+                      setInStockOnly(e.target.checked)
+                      const params = new URLSearchParams()
+                      if (search) params.set('search', search)
+                      if (selectedCategoryId) params.set('categoryId', selectedCategoryId)
+                      if (sort) params.set('sort', sort)
+                      if (e.target.checked) params.set('inStock', '1')
+                      router.push(`/products?${params.toString()}`, { scroll: false })
+                    }}
+                    className="rounded"
+                  />
+                  In stock only
+                </label>
                 <div className="relative">
                   <select
                     value={sort}

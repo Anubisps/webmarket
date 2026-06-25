@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db'
 import { isProductPubliclyAvailable } from '@/lib/activeProduct'
 import { notFound } from 'next/navigation'
+import { formatPriceLabel } from '@/lib/formatPrice'
 import { 
   ArrowLeft, 
   ShoppingCart, 
@@ -69,6 +70,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   const deliveryText = getDeliveryText()
   const customerNote = product.productNote || product.customNote
+
+  type Variant = { id: string; name: string; price?: number }
+  const variants = Array.isArray(product.variants) ? (product.variants as Variant[]) : []
 
   // Format description with line breaks
   const formattedDescription = product.description?.split('\n').map((line, i) => (
@@ -174,11 +178,26 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 </div>
               )}
 
+              {variants.length > 0 && (
+                <div className="mb-6 rounded-xl border border-purple-500/20 bg-purple-500/10 p-4">
+                  <p className="mb-2 text-sm font-semibold text-purple-300">Available options</p>
+                  <ul className="space-y-1 text-sm text-gray-300">
+                    {variants.map(v => (
+                      <li key={v.id} className="flex justify-between">
+                        <span>{v.name}</span>
+                        <span>{formatPriceLabel(typeof v.price === 'number' ? v.price : product.price)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-xs text-gray-500">Select your option at checkout.</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-black/30 rounded-xl p-3 border border-white/5">
                   <p className="text-xs text-gray-400">Price</p>
                   <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    ${product.price.toFixed(2)} USD
+                    {formatPriceLabel(product.price)}
                   </p>
                   {product.discount && (
                     <p className="text-xs text-green-400">🔥 {product.discount}% discount applied</p>

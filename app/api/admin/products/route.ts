@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
+import { billingDaysFromType } from '@/lib/subscriptionFromProduct'
 
 export async function GET() {
   try {
@@ -56,7 +57,11 @@ export async function POST(req: Request) {
       name, slug, description = '', price, stock, categoryId,
       isActive = true, isLimited = false, discount = null,
       startDate = null, endDate = null, images = [],
-      variants = '[]', bannerImage = null
+      variants = '[]', bannerImage = null,
+      availabilityMessage = null, productNote, customDelivery,
+      enableUsernameFetch, fetchProvider, gameIdLabel,
+      subscriptionEnabled = false, subscriptionBillingType = 'monthly',
+      subscriptionIntervalDays,
     } = body
 
     if (!name || !slug || price === undefined || stock === undefined) {
@@ -74,6 +79,10 @@ export async function POST(req: Request) {
       }
     }
 
+    const intervalDays = subscriptionEnabled
+      ? billingDaysFromType(subscriptionBillingType, subscriptionIntervalDays)
+      : 30
+
     const product = await prisma.product.create({
       data: {
         name: name.trim(),
@@ -90,6 +99,17 @@ export async function POST(req: Request) {
         images: images,
         variants: parsedVariants,
         bannerImage: bannerImage,
+        availabilityMessage: availabilityMessage || null,
+        productNote: productNote?.trim() || null,
+        customNote: productNote?.trim() || null,
+        customDelivery: customDelivery?.trim() || null,
+        estimatedDelivery: customDelivery?.trim() || null,
+        enableUsernameFetch: enableUsernameFetch === 'true' ? true : enableUsernameFetch === 'false' ? false : null,
+        fetchProvider: fetchProvider || null,
+        gameIdLabel: gameIdLabel?.trim() || null,
+        subscriptionEnabled: !!subscriptionEnabled,
+        subscriptionBillingType: subscriptionEnabled ? (subscriptionBillingType || 'monthly') : 'monthly',
+        subscriptionIntervalDays: subscriptionEnabled ? intervalDays : 30,
         order: 0
       }
     })

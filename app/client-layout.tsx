@@ -12,10 +12,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
   const router = useRouter()
   const redirectExecuted = useRef(false)
+  const lastPageview = useRef<{ path: string; at: number } | null>(null)
 
   useEffect(() => {
     if (status === 'loading') return
 
+    // ✅ Add all public routes here
     const publicPages = [
       '/',
       '/products',
@@ -27,7 +29,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       '/privacy',
       '/terms',
       '/forgot-password',
-      '/reset-password'
+      '/reset-password'      // allows any /reset-password/* subpath
     ]
 
     const isPublicPage = publicPages.some(page => 
@@ -52,6 +54,36 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       router.push('/login')
     }
   }, [status, pathname, router])
+
+  // Client-side pageview tracking (more reliable than middleware-only edge fetch)
+  useEffect(() => {
+    if (!pathname || pathname.startsWith('/accessadmin') || pathname.startsWith('/api')) return
+
+    const now = Date.now()
+    if (lastPageview.current?.path === pathname && now - lastPageview.current.at < 2500) return
+    lastPageview.current = { path: pathname, at: now }
+
+    const sessionId = document.cookie
+      .split(';')
+      .map(c => c.trim())
+      .find(c => c.startsWith('sessionId='))
+      ?.split('=')[1]
+
+    fetch('/api/analytics/pageview', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({
+        path: pathname,
+        method: 'GET',
+        userAgent: navigator.userAgent,
+        referer: document.referrer || '',
+        query: typeof window !== 'undefined' ? window.location.search : '',
+        sessionId: sessionId ? decodeURIComponent(sessionId) : crypto.randomUUID(),
+      }),
+    }).catch(() => {})
+  }, [pathname])
 
   const hideLiveChat = pathname?.startsWith('/accessadmin')
 

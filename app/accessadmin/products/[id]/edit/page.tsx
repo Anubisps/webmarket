@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, Sparkles, Package, Save, Box, Edit, Upload, Image as ImageIcon, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { revalidateHomepage } from '@/app/actions/productActions'
+import { ProductSubscriptionFields } from '@/components/admin/ProductSubscriptionFields'
 
 // Loading error component
 function ProductLoadingError({ onRetry }: { onRetry: () => void }) {
@@ -60,6 +61,9 @@ export default function EditProductPage() {
   const [uploading, setUploading] = useState(false)
   const [bannerUploading, setBannerUploading] = useState(false)
   const [categories, setCategories] = useState<any[]>([])
+  const [subscriptionEnabled, setSubscriptionEnabled] = useState(false)
+  const [subscriptionBillingType, setSubscriptionBillingType] = useState('monthly')
+  const [subscriptionCustomDays, setSubscriptionCustomDays] = useState('30')
 
   useEffect(() => {
     fetch('/api/admin/categories')
@@ -99,6 +103,9 @@ export default function EditProductPage() {
           fetchProvider: data.fetchProvider || 'wherewindsmeet',
           gameIdLabel: data.gameIdLabel || '',
         })
+        setSubscriptionEnabled(!!data.subscriptionEnabled)
+        setSubscriptionBillingType(data.subscriptionBillingType || 'monthly')
+        setSubscriptionCustomDays(String(data.subscriptionIntervalDays || 30))
         setProductImage(data.images && data.images.length > 0 ? data.images[0] : '')
         setLoadError(false)
       })
@@ -144,6 +151,9 @@ export default function EditProductPage() {
           enableUsernameFetch: form.enableUsernameFetch,
           fetchProvider: form.fetchProvider,
           gameIdLabel: form.gameIdLabel || null,
+          subscriptionEnabled,
+          subscriptionBillingType,
+          subscriptionIntervalDays: subscriptionBillingType === 'custom' ? parseInt(subscriptionCustomDays, 10) : undefined,
         })
       })
 
@@ -524,6 +534,15 @@ export default function EditProductPage() {
               placeholder="e.g. Instant after payment, 24-48 hours"
             />
           </div>
+
+          <ProductSubscriptionFields
+            enabled={subscriptionEnabled}
+            billingType={subscriptionBillingType}
+            customDays={subscriptionCustomDays}
+            onEnabledChange={setSubscriptionEnabled}
+            onBillingTypeChange={setSubscriptionBillingType}
+            onCustomDaysChange={setSubscriptionCustomDays}
+          />
 
           <button
             type="submit"

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { generateTicketId } from '@/utils/ticketId'
+import { slaStatus } from '@/lib/tickets/sla'
 
 type TicketRow = {
   id: string
@@ -15,6 +16,7 @@ type TicketRow = {
   status: string
   priority: string
   createdAt: string
+  slaDueAt?: string | null
   user: { username: string; email: string }
   replies: { id: string }[]
 }
@@ -165,6 +167,15 @@ export function AdminTicketsBoard({ tickets }: { tickets: TicketRow[] }) {
                   <span className="rounded-full bg-white/5 px-2 py-0.5 text-gray-400">
                     {ticket.replies.length} replies
                   </span>
+                  {ticket.slaDueAt && (
+                    <span className={`rounded-full px-2 py-0.5 ${
+                      slaStatus(new Date(ticket.slaDueAt)) === 'breached' ? 'bg-rose-500/20 text-rose-300' :
+                      slaStatus(new Date(ticket.slaDueAt)) === 'warning' ? 'bg-amber-500/20 text-amber-300' :
+                      'bg-emerald-500/20 text-emerald-300'
+                    }`}>
+                      SLA {new Date(ticket.slaDueAt).toLocaleString()}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-2">

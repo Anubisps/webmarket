@@ -48,6 +48,7 @@ export async function POST(request: Request) {
     }
 
     // Create the ticket (this already links the order via orderId)
+    const { computeSlaDueAt } = await import('@/lib/tickets/sla')
     const ticket = await prisma.ticket.create({
       data: {
         userId: user.id,
@@ -55,7 +56,8 @@ export async function POST(request: Request) {
         message: message.trim(),
         status: 'open',
         priority: ticketPriority,
-        orderId: orderId || null
+        orderId: orderId || null,
+        slaDueAt: computeSlaDueAt(ticketPriority),
       },
       include: {
         user: {

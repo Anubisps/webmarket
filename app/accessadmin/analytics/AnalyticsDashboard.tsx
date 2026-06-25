@@ -40,6 +40,11 @@ type LiveSession = {
   sessionId: string
   ip: string
   device: string
+  browser?: string
+  country?: string | null
+  city?: string | null
+  region?: string | null
+  referer?: string
   active: boolean
   duration: string
   pages: string[]
@@ -65,29 +70,35 @@ function StatCard({ label, value, icon: Icon, accent }: { label: string; value: 
 }
 
 function LiveVisitorRow({ session }: { session: LiveSession }) {
+  const location = [session.city, session.region, session.country].filter(Boolean).join(', ')
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/20 p-3">
-      <div className="flex items-center gap-3 min-w-0">
-        <span className="relative flex h-2.5 w-2.5">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <span className="relative flex h-2.5 w-2.5 shrink-0">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
         </span>
         <div className="min-w-0">
           {session.isLoggedIn ? (
             <p className="flex items-center gap-1 font-medium text-violet-300">
-              <UserCheck className="h-3.5 w-3.5" />
+              <UserCheck className="h-3.5 w-3.5 shrink-0" />
               {session.username || 'Logged-in user'}
             </p>
           ) : (
             <p className="flex items-center gap-1 font-medium text-gray-300">
-              <Globe className="h-3.5 w-3.5" />
+              <Globe className="h-3.5 w-3.5 shrink-0" />
               Guest visitor
             </p>
           )}
           <p className="truncate text-xs text-gray-500">{session.currentPage}</p>
+          <p className="text-xs text-gray-600">
+            IP: <span className="font-mono text-gray-400">{session.ip}</span>
+            {location && <> · {location}</>}
+          </p>
         </div>
       </div>
-      <div className="flex items-center gap-4 text-xs text-gray-400">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+        <span>{session.browser || session.device}</span>
         <span>{session.device}</span>
         <span>{session.pageCount} pages</span>
         <span className="text-emerald-400">{session.duration}</span>
@@ -104,7 +115,7 @@ export function AnalyticsDashboard() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/analytics/dashboard')
+      const res = await fetch('/api/admin/analytics/dashboard', { cache: 'no-store' })
       if (res.ok) {
         setData(await res.json())
         setLastRefresh(new Date())
@@ -118,7 +129,7 @@ export function AnalyticsDashboard() {
 
   useEffect(() => {
     load()
-    const interval = setInterval(load, 30000)
+    const interval = setInterval(load, 5000)
     return () => clearInterval(interval)
   }, [load])
 
@@ -190,8 +201,8 @@ export function AnalyticsDashboard() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
               <h3 className="mb-4 font-bold">Traffic & Signups (7 days)</h3>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-72 min-h-[288px] w-full min-w-0">
+                <ResponsiveContainer width="100%" height={288} minHeight={288}>
                   <AreaChart data={charts.days}>
                     <defs>
                       <linearGradient id="pvGrad" x1="0" y1="0" x2="0" y2="1">
@@ -217,8 +228,8 @@ export function AnalyticsDashboard() {
 
             <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
               <h3 className="mb-4 font-bold">Orders & Revenue (7 days)</h3>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-72 min-h-[288px] w-full min-w-0">
+                <ResponsiveContainer width="100%" height={288} minHeight={288}>
                   <BarChart data={charts.days}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
                     <XAxis dataKey="date" stroke="#888" fontSize={12} />
@@ -259,8 +270,8 @@ export function AnalyticsDashboard() {
               {deviceData.length === 0 ? (
                 <p className="text-gray-500">No active visitors right now.</p>
               ) : (
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="h-64 min-h-[256px] w-full min-w-0">
+                  <ResponsiveContainer width="100%" height={256} minHeight={256}>
                     <PieChart>
                       <Pie data={deviceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
                         {deviceData.map((_, i) => (

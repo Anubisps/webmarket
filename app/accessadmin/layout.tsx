@@ -24,8 +24,10 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       <Toaster />
       <div className="flex">
+        {/* Sidebar - fixed */}
         <AdminSidebar />
         
+        {/* Main content - scrollable */}
         <div className="flex-1 ml-64 min-h-screen p-8">
           <div className="max-w-7xl mx-auto">
             {children}

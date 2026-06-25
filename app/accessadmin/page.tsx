@@ -2,7 +2,11 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
-import { Users, Package, ShoppingCart, DollarSign, TrendingUp, Clock, Box, ArrowRight, Zap, Shield, Sparkles } from 'lucide-react'
+import {
+  Users, Package, ShoppingCart, DollarSign, TrendingUp, Clock, Zap, Sparkles,
+  HelpCircle, Ticket, Mail, Gift, Tag, BarChart3, MessageCircle, Settings,
+  CreditCard, Shield, Bell, Plus, FolderTree,
+} from 'lucide-react'
 
 export default async function AdminDashboard() {
   const session = await getServerSession()
@@ -34,11 +38,40 @@ export default async function AdminDashboard() {
     take: 5
   })
 
+  const pendingPayments = await prisma.order.count({
+    where: { paymentStatus: 'pending', status: { not: 'cancelled' } },
+  })
+  const openTickets = await prisma.ticket.count({
+    where: { status: { in: ['open', 'in-progress'] } },
+  })
+  const pendingFulfillment = await prisma.order.count({
+    where: { paymentStatus: 'paid', fulfillmentStatus: { in: ['pending', 'processing'] } },
+  })
+
   const stats = [
     { label: 'Total Users', value: totalUsers, icon: Users, color: 'from-purple-500 to-pink-500' },
     { label: 'Total Products', value: totalProducts, icon: Package, color: 'from-blue-500 to-cyan-500' },
     { label: 'Total Orders', value: totalOrders, icon: ShoppingCart, color: 'from-emerald-500 to-teal-500' },
     { label: 'Revenue', value: `$${totalRevenue._sum.total?.toFixed(2) || '0.00'}`, icon: DollarSign, color: 'from-yellow-500 to-orange-500' },
+  ]
+
+  const quickActions = [
+    { href: '/accessadmin/products/new', label: 'Add Product', desc: 'Create catalog item', icon: Plus, color: 'text-purple-400', bg: 'from-purple-500/10 to-pink-500/10' },
+    { href: '/accessadmin/products', label: 'Products', desc: 'Manage catalog', icon: Package, color: 'text-fuchsia-400', bg: 'from-fuchsia-500/10 to-purple-500/10' },
+    { href: '/accessadmin/orders', label: 'Orders', desc: 'Payments & fulfillment', icon: ShoppingCart, color: 'text-emerald-400', bg: 'from-emerald-500/10 to-teal-500/10' },
+    { href: '/accessadmin/users', label: 'Users', desc: 'Accounts & roles', icon: Users, color: 'text-blue-400', bg: 'from-blue-500/10 to-cyan-500/10' },
+    { href: '/accessadmin/categories', label: 'Categories', desc: 'Product grouping', icon: FolderTree, color: 'text-cyan-400', bg: 'from-cyan-500/10 to-blue-500/10' },
+    { href: '/accessadmin/tickets', label: 'Tickets', desc: 'Support requests', icon: Ticket, color: 'text-violet-400', bg: 'from-violet-500/10 to-indigo-500/10' },
+    { href: '/accessadmin/livechat', label: 'Live Chat', desc: 'Realtime support', icon: MessageCircle, color: 'text-pink-400', bg: 'from-pink-500/10 to-rose-500/10' },
+    { href: '/accessadmin/contact', label: 'Contact', desc: 'Inbox messages', icon: Mail, color: 'text-sky-400', bg: 'from-sky-500/10 to-blue-500/10' },
+    { href: '/accessadmin/affiliates', label: 'Affiliates', desc: 'Referrals & payouts', icon: Gift, color: 'text-amber-400', bg: 'from-amber-500/10 to-orange-500/10' },
+    { href: '/accessadmin/faq', label: 'FAQ', desc: 'Help articles', icon: HelpCircle, color: 'text-lime-400', bg: 'from-lime-500/10 to-green-500/10' },
+    { href: '/accessadmin/analytics', label: 'Analytics', desc: 'Traffic & sales', icon: BarChart3, color: 'text-indigo-400', bg: 'from-indigo-500/10 to-violet-500/10' },
+    { href: '/accessadmin/settings/discounts', label: 'Discounts', desc: 'Coupon codes', icon: Tag, color: 'text-orange-400', bg: 'from-orange-500/10 to-red-500/10' },
+    { href: '/accessadmin/settings/payments', label: 'Payments', desc: 'Gateways & methods', icon: CreditCard, color: 'text-teal-400', bg: 'from-teal-500/10 to-emerald-500/10' },
+    { href: '/accessadmin/settings/security', label: 'Security', desc: 'Sessions & access', icon: Shield, color: 'text-rose-400', bg: 'from-rose-500/10 to-red-500/10' },
+    { href: '/accessadmin/settings/notice', label: 'Site Notice', desc: 'Banner announcements', icon: Bell, color: 'text-yellow-400', bg: 'from-yellow-500/10 to-amber-500/10' },
+    { href: '/accessadmin/settings', label: 'Settings', desc: 'General store config', icon: Settings, color: 'text-gray-300', bg: 'from-gray-500/10 to-slate-500/10' },
   ]
 
   return (
@@ -70,6 +103,29 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
+        {(pendingPayments > 0 || openTickets > 0 || pendingFulfillment > 0) && (
+          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {pendingPayments > 0 && (
+              <Link href="/accessadmin/orders" className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 hover:bg-amber-500/15">
+                <p className="text-sm text-amber-200">Pending manual payments</p>
+                <p className="text-2xl font-bold text-amber-300">{pendingPayments}</p>
+              </Link>
+            )}
+            {pendingFulfillment > 0 && (
+              <Link href="/accessadmin/orders" className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 hover:bg-cyan-500/15">
+                <p className="text-sm text-cyan-200">Awaiting fulfillment</p>
+                <p className="text-2xl font-bold text-cyan-300">{pendingFulfillment}</p>
+              </Link>
+            )}
+            {openTickets > 0 && (
+              <Link href="/accessadmin/tickets" className="rounded-2xl border border-violet-500/30 bg-violet-500/10 p-4 hover:bg-violet-500/15">
+                <p className="text-sm text-violet-200">Open tickets</p>
+                <p className="text-2xl font-bold text-violet-300">{openTickets}</p>
+              </Link>
+            )}
+          </div>
+        )}
+
         {/* ===== STATS GRID ===== */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {stats.map((stat, i) => (
@@ -86,7 +142,7 @@ export default async function AdminDashboard() {
         </div>
 
         {/* ===== QUICK STATS ROW ===== */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
           <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-emerald-400" />
@@ -114,28 +170,23 @@ export default async function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6">
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6 lg:col-span-2">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <Zap className="w-5 h-5 text-cyan-400" />
               Quick Actions
             </h2>
-            <div className="grid grid-cols-2 gap-3">
-              <Link href="/accessadmin/products/new" className="group p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl border border-white/5 hover:border-purple-500/30 hover:scale-105 transition-all text-center">
-                <p className="font-medium text-purple-400">Add Product</p>
-                <p className="text-xs text-gray-400">Create a new product</p>
-              </Link>
-              <Link href="/accessadmin/orders" className="group p-4 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-xl border border-white/5 hover:border-emerald-500/30 hover:scale-105 transition-all text-center">
-                <p className="font-medium text-emerald-400">Manage Orders</p>
-                <p className="text-xs text-gray-400">View and update orders</p>
-              </Link>
-              <Link href="/accessadmin/users" className="group p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl border border-white/5 hover:border-blue-500/30 hover:scale-105 transition-all text-center">
-                <p className="font-medium text-blue-400">Manage Users</p>
-                <p className="text-xs text-gray-400">View and edit users</p>
-              </Link>
-              <Link href="/accessadmin/settings/general" className="group p-4 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl border border-white/5 hover:border-yellow-500/30 hover:scale-105 transition-all text-center">
-                <p className="font-medium text-yellow-400">Settings</p>
-                <p className="text-xs text-gray-400">Configure your store</p>
-              </Link>
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+              {quickActions.map(action => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className={`group p-4 bg-gradient-to-br ${action.bg} rounded-xl border border-white/5 hover:border-white/20 hover:scale-[1.02] transition-all`}
+                >
+                  <action.icon className={`w-5 h-5 mb-2 ${action.color}`} />
+                  <p className={`font-medium text-sm ${action.color}`}>{action.label}</p>
+                  <p className="text-xs text-gray-500 mt-1">{action.desc}</p>
+                </Link>
+              ))}
             </div>
           </div>
         </div>

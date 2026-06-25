@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
+import { billingDaysFromType } from '@/lib/subscriptionFromProduct'
 
 export async function GET(
   req: Request,
@@ -59,12 +60,17 @@ export async function PUT(
       images, variants, bannerImage,
       availabilityMessage, showAvailabilityMessage,
       productNote, customDelivery, customNote,
-      enableUsernameFetch, fetchProvider, gameIdLabel
+      enableUsernameFetch, fetchProvider, gameIdLabel,
+      subscriptionEnabled, subscriptionBillingType, subscriptionIntervalDays,
     } = body
 
     const parsedEnableFetch = enableUsernameFetch === 'inherit' || enableUsernameFetch === null || enableUsernameFetch === undefined
       ? null
       : enableUsernameFetch === true || enableUsernameFetch === 'true'
+
+    const intervalDays = subscriptionEnabled
+      ? billingDaysFromType(subscriptionBillingType || 'monthly', subscriptionIntervalDays)
+      : 30
 
     const product = await prisma.product.update({
       where: { id },
@@ -91,6 +97,9 @@ export async function PUT(
         enableUsernameFetch: parsedEnableFetch,
         fetchProvider: parsedEnableFetch === true ? (fetchProvider || 'wherewindsmeet') : parsedEnableFetch === false ? null : fetchProvider || null,
         gameIdLabel: gameIdLabel || null,
+        subscriptionEnabled: !!subscriptionEnabled,
+        subscriptionBillingType: subscriptionEnabled ? (subscriptionBillingType || 'monthly') : 'monthly',
+        subscriptionIntervalDays: subscriptionEnabled ? intervalDays : 30,
       }
     })
 

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Star, ArrowRight, Flame, Eye } from 'lucide-react'
 import { WishlistButton } from './WishlistButton'
+import { formatPriceLabel } from '@/lib/formatPrice'
 
 interface ProductCardProps {
   product: {
@@ -65,9 +66,8 @@ export function ProductCard({ product, imageSrc, wishlisted }: ProductCardProps)
         <div className="flex items-center justify-between mt-3">
           <div className="flex flex-col">
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              ${product.price.toFixed(2)}
+              {formatPriceLabel(product.price)}
             </span>
-            <span className="text-xs text-gray-500">USD</span>
           </div>
           <Link
             href={`/products/${product.slug}`}

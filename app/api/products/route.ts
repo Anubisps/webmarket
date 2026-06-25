@@ -10,6 +10,7 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || ''
     const categoryId = searchParams.get('categoryId') || ''
     const sort = searchParams.get('sort') || 'featured'
+    const inStock = searchParams.get('inStock') === '1'
 
     const session = await getServerSession(authOptions)
     const userId = session?.user?.id
@@ -24,6 +25,9 @@ export async function GET(request: Request) {
     }
     if (categoryId && categoryId !== '') {
       where.categoryId = categoryId
+    }
+    if (inStock) {
+      where.stock = { gt: 0 }
     }
 
     // Build orderBy

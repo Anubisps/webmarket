@@ -19,8 +19,8 @@ export async function GET() {
 
     const settings = await prisma.siteSetting.findMany({
       where: {
-        category: 'security'
-      }
+        key: { in: ['enable_2fa', 'rate_limiting', 'session_timeout', 'max_login_attempts', 'allow_discount_stacking', 'discord_webhook_url'] },
+      },
     })
 
     const formatted = settings.reduce((acc: any, s) => {
@@ -50,7 +50,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { twoFactor, rateLimiting, sessionTimeout, maxLoginAttempts } = await request.json()
+    const { twoFactor, rateLimiting, sessionTimeout, maxLoginAttempts, allowDiscountStacking, discordWebhookUrl } = await request.json()
 
     await prisma.siteSetting.upsert({
       where: { key: 'enable_2fa' },
@@ -72,6 +72,19 @@ export async function PUT(request: Request) {
       update: { value: String(maxLoginAttempts) },
       create: { key: 'max_login_attempts', value: String(maxLoginAttempts), label: 'Max Login Attempts', category: 'security', type: 'number' }
     })
+    await prisma.siteSetting.upsert({
+      where: { key: 'allow_discount_stacking' },
+      update: { value: allowDiscountStacking ? 'true' : 'false' },
+      create: { key: 'allow_discount_stacking', value: allowDiscountStacking ? 'true' : 'false', label: 'Allow Discount Stacking', category: 'security', type: 'boolean' }
+    })
+    await prisma.siteSetting.upsert({
+      where: { key: 'discord_webhook_url' },
+      update: { value: discordWebhookUrl || '' },
+      create: { key: 'discord_webhook_url', value: discordWebhookUrl || '', label: 'Discord Webhook URL', category: 'integrations', type: 'text' }
+    })
+
+    const { clearSiteSettingsCache } = await import('@/lib/security/siteSettings')
+    clearSiteSettingsCache()
 
     return NextResponse.json({ success: true })
   } catch (error) {

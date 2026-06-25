@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { MessageCircle, Sparkles, Box, User, Send, Clock, ArrowLeft, XCircle, Trash2, Globe, Activity, Bell, CheckCircle, CheckCheck, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { LiveChatMessageBody } from '@/components/chat/LiveChatMessageBody'
+import { csrfHeaders } from '@/lib/csrfClient'
 import {
   alertLiveChatReply,
   initLiveChatTabTitle,
@@ -204,6 +205,23 @@ export default function AdminLiveChatPage() {
         toast.error('Failed to delete session')
       }
     } catch (err) {
+      toast.error('Network error')
+    }
+  }
+
+  const escalateToTicket = async (id: string) => {
+    try {
+      const res = await fetch('/api/admin/livechat/escalate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ sessionId: id }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success('Escalated to ticket')
+        window.location.href = `/accessadmin/tickets/${data.ticketId}`
+      } else toast.error(data.error || 'Escalation failed')
+    } catch {
       toast.error('Network error')
     }
   }
@@ -447,12 +465,20 @@ export default function AdminLiveChatPage() {
                         {formatDateTime(selectedSession.updatedAt)}
                       </span>
                       {activeTab === 'active' && (
-                        <button
-                          onClick={() => closeSession(selectedSession.id)}
-                          className="p-1 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </button>
+                        <>
+                          <button
+                            onClick={() => escalateToTicket(selectedSession.id)}
+                            className="rounded-lg bg-violet-500/15 px-2 py-1 text-xs text-violet-300 hover:bg-violet-500/25"
+                          >
+                            Escalate to ticket
+                          </button>
+                          <button
+                            onClick={() => closeSession(selectedSession.id)}
+                            className="p-1 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

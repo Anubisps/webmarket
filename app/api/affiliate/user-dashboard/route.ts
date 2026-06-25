@@ -58,6 +58,12 @@ export async function GET() {
     const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://windvault.store'
     const referralLink = `${base}/register?ref=${affiliate.code}`
 
+    const referralAnalytics = affiliate.referrals.reduce((acc: Record<string, number>, r) => {
+      const key = r.createdAt.toISOString().slice(0, 7)
+      acc[key] = (acc[key] || 0) + r.commission
+      return acc
+    }, {})
+
     return NextResponse.json({
       affiliate: {
         id: affiliate.id,
@@ -73,6 +79,7 @@ export async function GET() {
       totalPending,
       referralLink,
       balance: affiliate.balance,
+      referralAnalytics: Object.entries(referralAnalytics).map(([month, commission]) => ({ month, commission })),
     })
   } catch (error) {
     console.error('Error fetching affiliate data:', error)

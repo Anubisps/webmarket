@@ -9,6 +9,8 @@ export default function SecurityPage() {
     rateLimiting: true,
     sessionTimeout: 30,
     maxLoginAttempts: 5,
+    allowDiscountStacking: false,
+    discordWebhookUrl: '',
   })
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -24,6 +26,8 @@ export default function SecurityPage() {
             rateLimiting: data.rate_limiting === 'true',
             sessionTimeout: parseInt(data.session_timeout) || 30,
             maxLoginAttempts: parseInt(data.max_login_attempts) || 5,
+            allowDiscountStacking: data.allow_discount_stacking === 'true',
+            discordWebhookUrl: data.discord_webhook_url || '',
           })
         }
       } catch (error) {
@@ -128,6 +132,33 @@ export default function SecurityPage() {
             value={settings.maxLoginAttempts}
             onChange={e => setSettings({ ...settings, maxLoginAttempts: parseInt(e.target.value) })}
             className="w-24 px-4 py-2 rounded-xl bg-black/30 border border-white/10 text-white focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium">Allow coupon + referral stacking</p>
+            <p className="text-sm text-gray-400">When off, referral discount is skipped if a coupon is applied</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.allowDiscountStacking}
+              onChange={e => setSettings({ ...settings, allowDiscountStacking: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-gradient-to-r from-cyan-500 to-blue-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+          </label>
+        </div>
+
+        <div>
+          <p className="font-medium mb-1">Discord webhook URL (order/ticket notifications)</p>
+          <input
+            type="url"
+            value={settings.discordWebhookUrl}
+            onChange={e => setSettings({ ...settings, discordWebhookUrl: e.target.value })}
+            placeholder="https://discord.com/api/webhooks/..."
+            className="w-full px-4 py-2 rounded-xl bg-black/30 border border-white/10 text-white"
           />
         </div>
 
