@@ -171,7 +171,7 @@ export function ProductsList() {
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                        {product.price.toFixed(2)} USDC
+                        {product.price.toFixed(2)} USD
                       </span>
                       <span className="flex items-center gap-1 text-xs text-blue-400 font-medium group-hover:translate-x-1 transition-transform">
                         View <ArrowRight className="w-3 h-3" />

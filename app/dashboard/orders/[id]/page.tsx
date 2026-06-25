@@ -133,10 +133,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <div className="bg-black/30 rounded-xl p-3 border border-white/5">
                   <p className="text-xs text-gray-400">Total</p>
                   <p className="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    {order.total.toFixed(2)} USDC
+                    {order.total.toFixed(2)} USD
                   </p>
                   {order.discountAmount && (
-                    <p className="text-xs text-green-400">-{order.discountAmount} USDC</p>
+                    <p className="text-xs text-green-400">-{order.discountAmount} USD</p>
                   )}
                 </div>
               </div>
@@ -176,7 +176,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 {order.discountAmount && (
                   <div className="flex justify-between items-center py-1 border-t border-white/5">
                     <span className="text-xs text-green-400">Discount</span>
-                    <span className="text-xs text-green-400">-{order.discountAmount} USDC</span>
+                    <span className="text-xs text-green-400">-{order.discountAmount} USD</span>
                   </div>
                 )}
               </div>

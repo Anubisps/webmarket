@@ -87,9 +87,10 @@ model Product {
 
   deliveryEstimate String? 
   estimatedDelivery String?   // e.g., "Instant", "2-3 days", "After payment"
-  productNote      String?   
-  customDelivery String?   // if deliveryOption = "custom"
-  customNote     String?   // custom note shown on product page
+  productNote      String?
+  customDelivery   String?
+  customNote       String?
+  availabilityMessage String?
   enableUsernameFetch Boolean?
   fetchProvider       String?
   gameIdLabel         String?

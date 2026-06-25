@@ -1,19 +1,30 @@
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions)
+    if (session?.user) {
+      return NextResponse.json({ error: 'Log out before resetting your password' }, { status: 400 })
+    }
+
     const { token, newPassword } = await req.json()
     if (!token || !newPassword) {
       return NextResponse.json({ error: 'Token and password required' }, { status: 400 })
     }
 
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
+      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
+    }
+
     const user = await prisma.user.findFirst({
       where: {
         resetToken: token,
-        resetTokenExpiry: { gt: new Date() }
-      }
+        resetTokenExpiry: { gt: new Date() },
+      },
     })
 
     if (!user) {
@@ -27,8 +38,8 @@ export async function POST(req: Request) {
       data: {
         password: hashedPassword,
         resetToken: null,
-        resetTokenExpiry: null
-      }
+        resetTokenExpiry: null,
+      },
     })
 
     return NextResponse.json({ message: 'Password updated successfully' })

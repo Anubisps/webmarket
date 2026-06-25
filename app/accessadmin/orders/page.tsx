@@ -1,123 +1,75 @@
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import Link from 'next/link'
-import { ShoppingCart, Sparkles, Box, ArrowRight, Clock, CheckCircle, XCircle, AlertCircle, Eye, Filter } from 'lucide-react'
+import { ShoppingCart } from 'lucide-react'
+import { AdminOrdersBoard } from './AdminOrdersBoard'
 
 export default async function AdminOrders() {
   const session = await getServerSession()
   if (!session?.user?.email) redirect('/login')
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email }
-  })
-
-  if (!user || !['admin', 'manager', 'processor'].includes(user.role)) {
-    redirect('/dashboard')
-  }
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
+  if (!user || !['admin', 'manager', 'processor'].includes(user.role)) redirect('/dashboard')
 
   const orders = await prisma.order.findMany({
     include: {
-      user: {
-        select: { username: true, email: true }
-      },
-      items: {
-        include: {
-          product: true
-        }
-      }
+      user: { select: { username: true, email: true } },
     },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
   })
 
+  const pendingPay = orders.filter(o => o.paymentStatus === 'pending').length
+
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-        <div>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-4">
-            <ShoppingCart className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-medium text-gray-300">Orders</span>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold">
-            All <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Orders</span>
-          </h1>
-          <p className="text-gray-400 text-lg">{orders.length} total order(s)</p>
-        </div>
+    <div className="min-h-screen text-white">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute top-[-25%] left-[-15%] h-[65%] w-[65%] rounded-full bg-emerald-600/10 blur-3xl" />
+        <div className="absolute bottom-[-25%] right-[-15%] h-[65%] w-[65%] rounded-full bg-teal-600/10 blur-3xl" />
       </div>
 
-      <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-black/30">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Order ID</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Customer</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Game ID</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Total</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Status</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Payment</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Date</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-400">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {orders.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
-                    <Box className="w-12 h-12 mx-auto mb-3 text-gray-500" />
-                    <p>No orders found</p>
-                  </td>
-                </tr>
-              ) : (
-                orders.map(order => (
-                  <tr key={order.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4 font-mono text-sm">#{order.id.slice(0,8)}</td>
-                    <td className="px-6 py-4">
-                      <p className="font-medium">{order.user.username}</p>
-                      <p className="text-xs text-gray-400">{order.user.email}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="font-mono text-sm">{order.ign || '—'}</p>
-                      {order.ignUsername && (
-                        <p className="text-xs text-emerald-400">{order.ignUsername}</p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 font-bold text-emerald-400">{order.total.toFixed(2)} USDC</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        order.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
-                        order.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                        'bg-yellow-500/20 text-yellow-400'
-                      }`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        order.paymentStatus === 'paid' ? 'bg-emerald-500/20 text-emerald-400' :
-                        order.paymentStatus === 'failed' ? 'bg-red-500/20 text-red-400' :
-                        'bg-yellow-500/20 text-yellow-400'
-                      }`}>
-                        {order.paymentStatus}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-400">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <Link
-                        href={`/accessadmin/orders/${order.id}`}
-                        className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-sm"
-                      >
-                        <Eye className="w-3 h-3" /> Manage
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      <div className="relative z-10">
+        <div className="mb-8">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-md">
+            <ShoppingCart className="h-4 w-4 text-emerald-400" />
+            <span className="text-xs font-medium text-gray-300">Order Center</span>
+          </div>
+          <h1 className="text-3xl font-extrabold md:text-4xl">
+            <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+              Orders
+            </span>
+          </h1>
+          <p className="mt-2 text-lg text-gray-400">
+            {orders.length} total · {pendingPay} awaiting payment
+          </p>
         </div>
+
+        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[
+            { label: 'Total', value: orders.length },
+            { label: 'Processing', value: orders.filter(o => o.status === 'processing').length },
+            { label: 'Completed', value: orders.filter(o => o.status === 'completed').length },
+            { label: 'Pending pay', value: pendingPay },
+          ].map(s => (
+            <div key={s.label} className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+              <p className="text-xs uppercase tracking-wide text-gray-500">{s.label}</p>
+              <p className="text-xl font-bold text-emerald-300">{s.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <AdminOrdersBoard
+          orders={orders.map(o => ({
+            id: o.id,
+            total: o.total,
+            status: o.status,
+            paymentStatus: o.paymentStatus,
+            paymentMethod: o.paymentMethod,
+            ign: o.ign,
+            ignUsername: o.ignUsername,
+            createdAt: o.createdAt.toISOString(),
+            user: o.user,
+          }))}
+        />
       </div>
     </div>
   )

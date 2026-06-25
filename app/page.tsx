@@ -199,7 +199,7 @@ export default async function Home() {
                         <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                           ${product.price.toFixed(2)}
                         </span>
-                        <span className="text-xs text-gray-400">USDC</span>
+                        <span className="text-xs text-gray-400">USD</span>
                       </div>
                       <div className="mt-4 flex items-center justify-between">
                         <div className="flex items-center gap-1 text-xs text-yellow-400">

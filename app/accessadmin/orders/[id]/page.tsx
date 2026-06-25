@@ -244,10 +244,10 @@ export default function ManageOrderPage() {
               <div className="bg-black/30 rounded-xl p-4 border border-white/5">
                 <p className="text-sm text-gray-400">Total Amount</p>
                 <p className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-                  {finalTotal.toFixed(2)} USDC
+                  {finalTotal.toFixed(2)} USD
                 </p>
                 {parseFloat(discountAmount) > 0 && (
-                  <p className="text-xs text-green-400">Discount: -{discountAmount} USDC</p>
+                  <p className="text-xs text-green-400">Discount: -{discountAmount} USD</p>
                 )}
               </div>
               <div className="bg-black/30 rounded-xl p-4 border border-white/5">
@@ -334,7 +334,7 @@ export default function ManageOrderPage() {
                   <Plus className="w-4 h-4" /> Add Item
                 </button>
                 <div className="mt-4 flex items-center gap-2">
-                  <label className="text-sm text-gray-400">Discount Amount (USDC):</label>
+                  <label className="text-sm text-gray-400">Discount Amount (USD):</label>
                   <input
                     type="number"
                     step="0.01"
@@ -356,13 +356,13 @@ export default function ManageOrderPage() {
                 {items.map((item) => (
                   <div key={item.id} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
                     <span className="font-medium">{item.productName}</span>
-                    <span className="text-sm text-gray-400">{item.price.toFixed(2)} USDC × {item.quantity}</span>
+                    <span className="text-sm text-gray-400">{item.price.toFixed(2)} USD × {item.quantity}</span>
                   </div>
                 ))}
                 {parseFloat(discountAmount) > 0 && (
                   <div className="flex justify-between items-center py-2 border-t border-white/5">
                     <span className="text-green-400">Discount</span>
-                    <span className="text-green-400">-{discountAmount} USDC</span>
+                    <span className="text-green-400">-{discountAmount} USD</span>
                   </div>
                 )}
               </div>

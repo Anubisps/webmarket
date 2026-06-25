@@ -186,7 +186,7 @@ export default async function OrdersPage() {
                           {new Date(order.createdAt).toLocaleString()}
                         </p>
                         <p className={`text-3xl font-extrabold ${cardStyle.accent}`}>
-                          {order.total.toFixed(2)} <span className="text-sm font-semibold text-gray-400">USDC</span>
+                          {order.total.toFixed(2)} <span className="text-sm font-semibold text-gray-400">USD</span>
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-2">

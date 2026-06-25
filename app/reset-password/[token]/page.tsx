@@ -1,18 +1,34 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Lock, CheckCircle } from 'lucide-react'
+import { Lock, CheckCircle, Shield, LogOut } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useSession, signOut } from 'next-auth/react'
 
 export default function ResetPasswordPage() {
   const params = useParams()
   const router = useRouter()
+  const { status } = useSession()
   const token = params.token as string
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/dashboard/security')
+    }
+  }, [status, router])
+
+  if (status === 'loading' || status === 'authenticated') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0f] text-gray-400">
+        Loading...
+      </div>
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

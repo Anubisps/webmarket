@@ -67,7 +67,7 @@ export function ProductCard({ product, imageSrc, wishlisted }: ProductCardProps)
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               ${product.price.toFixed(2)}
             </span>
-            <span className="text-xs text-gray-500">USDC</span>
+            <span className="text-xs text-gray-500">USD</span>
           </div>
           <Link
             href={`/products/${product.slug}`}

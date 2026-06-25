@@ -9,7 +9,7 @@ async function getPdfWithAutoTable() {
 }
 
 function formatMoney(value: number) {
-  return `$${value.toFixed(2)} USDC`
+  return `$${value.toFixed(2)} USD`
 }
 
 function paymentStatusLabel(status: string) {

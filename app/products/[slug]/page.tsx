@@ -39,9 +39,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const stockStatus = product.stock > 0 ? 'In Stock' : 'Out of Stock'
   const isOutOfStock = product.stock <= 0
 
-  // Dynamic availability message (from limited event dates)
+  // Dynamic availability message (override or computed)
   const getAvailabilityMessage = () => {
-    if (product.stock <= 0) return "OUT OF STOCK"
+    if (product.availabilityMessage?.trim()) return product.availabilityMessage
+    if (product.stock <= 0) return 'OUT OF STOCK'
     if (!product.isLimited) return "Always available"
     if (!product.startDate && !product.endDate) return "Limited edition"
     const now = new Date()
@@ -59,6 +60,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   // Estimated delivery display – custom from admin or default
   const getDeliveryText = () => {
+    if (product.customDelivery?.trim()) return product.customDelivery
     if (product.estimatedDelivery) return product.estimatedDelivery
     // Default options based on product type
     if (product.isLimited) return "Limited time – fast delivery"
@@ -66,6 +68,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   }
 
   const deliveryText = getDeliveryText()
+  const customerNote = product.productNote || product.customNote
 
   // Format description with line breaks
   const formattedDescription = product.description?.split('\n').map((line, i) => (
@@ -156,14 +159,18 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 </span>
               </div>
 
-              {/* Custom Note (if set by admin) */}
-              {product.customNote && (
-                <div className="mb-6 p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Info className="w-4 h-4 text-blue-400" />
-                    <span className="text-sm font-semibold text-blue-400">Important Note</span>
+              {/* Customer note from admin */}
+              {customerNote && (
+                <div className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Info className="h-4 w-4 text-blue-400" />
+                    <span className="text-sm font-semibold text-blue-400">Important Information</span>
                   </div>
-                  <p className="text-sm text-gray-300">{product.customNote}</p>
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-gray-300">
+                    {customerNote.split('\n').map((line, i) => (
+                      <p key={i} className={i > 0 ? 'mt-2' : ''}>{line}</p>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -171,7 +178,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 <div className="bg-black/30 rounded-xl p-3 border border-white/5">
                   <p className="text-xs text-gray-400">Price</p>
                   <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    ${product.price.toFixed(2)} USDC
+                    ${product.price.toFixed(2)} USD
                   </p>
                   {product.discount && (
                     <p className="text-xs text-green-400">🔥 {product.discount}% discount applied</p>

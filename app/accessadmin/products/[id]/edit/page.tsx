@@ -92,9 +92,9 @@ export default function EditProductPage() {
           availabilityMessage: data.availabilityMessage || '',
           showAvailabilityMessage: !!data.availabilityMessage,
           // ✅ Load new fields
-          productNote: data.productNote || '',
-          customDelivery: data.customDelivery || '',
-          customNote: data.customNote || '',
+          productNote: data.productNote || data.customNote || '',
+          customDelivery: data.customDelivery || data.estimatedDelivery || '',
+          customNote: '',
           enableUsernameFetch: data.enableUsernameFetch === true ? 'true' : data.enableUsernameFetch === false ? 'false' : 'inherit',
           fetchProvider: data.fetchProvider || 'wherewindsmeet',
           gameIdLabel: data.gameIdLabel || '',
@@ -141,7 +141,6 @@ export default function EditProductPage() {
           // ✅ Send new fields
           productNote: form.productNote,
           customDelivery: form.customDelivery,
-          customNote: form.customNote,
           enableUsernameFetch: form.enableUsernameFetch,
           fetchProvider: form.fetchProvider,
           gameIdLabel: form.gameIdLabel || null,
@@ -350,7 +349,7 @@ export default function EditProductPage() {
           {/* Price & Stock */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-400">Price (USDC)</label>
+              <label className="block text-sm font-medium mb-1 text-gray-400">Price (USD)</label>
               <input
                 type="number"
                 step="0.01"
@@ -498,40 +497,32 @@ export default function EditProductPage() {
             </div>
           )}
 
-          {/* ✅ Product Note – shown on product page */}
+          {/* Customer note — single rich text area */}
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-400">Product Note (shown to customers)</label>
+            <label className="block text-sm font-medium mb-1 text-gray-400">
+              Customer note (shown on product page)
+            </label>
+            <p className="mb-2 text-xs text-gray-500">
+              Use line breaks for paragraphs. Supports delivery info, warnings, or instructions.
+            </p>
             <textarea
-              rows={2}
-              className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+              rows={6}
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm leading-relaxed text-white placeholder-gray-500 focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
               value={form.productNote}
               onChange={e => setForm({ ...form, productNote: e.target.value })}
-              placeholder="e.g. This item requires 2-3 days to prepare"
+              placeholder={'Example:\n• Delivery within 24 hours after payment\n• Contact support with your order ID\n• Requires active game account'}
             />
           </div>
 
-          {/* ✅ Custom Delivery & Note */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-400">Custom Delivery (optional)</label>
-              <input
-                type="text"
-                className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                value={form.customDelivery}
-                onChange={e => setForm({ ...form, customDelivery: e.target.value })}
-                placeholder="e.g. 24-48 hours"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-400">Custom Note (optional)</label>
-              <input
-                type="text"
-                className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                value={form.customNote}
-                onChange={e => setForm({ ...form, customNote: e.target.value })}
-                placeholder="e.g. Contact support after purchase"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-400">Delivery estimate (optional)</label>
+            <input
+              type="text"
+              className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+              value={form.customDelivery}
+              onChange={e => setForm({ ...form, customDelivery: e.target.value })}
+              placeholder="e.g. Instant after payment, 24-48 hours"
+            />
           </div>
 
           <button

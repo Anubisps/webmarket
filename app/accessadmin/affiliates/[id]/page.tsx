@@ -232,7 +232,7 @@ export default function AdminAffiliateDetailPage() {
 
           {/* Adjust Balance */}
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-400">Adjust Balance (USDC)</label>
+            <label className="block text-sm font-medium mb-1 text-gray-400">Adjust Balance (USD)</label>
             <div className="flex gap-2">
               <input
                 type="number"
