@@ -122,10 +122,12 @@ export async function GET() {
       const geoExtra = (last.extra as { country?: string; city?: string; region?: string } | null) || {}
       const rawIp = last.ip || first.ip || 'unknown'
       const ip = normalizeIp(rawIp)
+      const isPublic = (last.extra as { ipPublic?: boolean } | null)?.ipPublic ?? !isPrivateOrLoopbackIp(ip)
       return {
         sessionId,
-        ip: formatIpForDisplay(ip),
-        rawIp: isPrivateOrLoopbackIp(ip) ? null : ip,
+        ip: formatIpForDisplay(ip, isPublic),
+        rawIp: ip,
+        isPublic,
         userAgent: last.userAgent || first.userAgent || '',
         device: parseDevice(last.userAgent || first.userAgent || ''),
         browser: parseBrowser(last.userAgent || first.userAgent || ''),
@@ -143,12 +145,10 @@ export async function GET() {
         city: geoExtra.city || null,
         region: geoExtra.region || null,
         currentPage: last.path,
-        isResolvable: !isPrivateOrLoopbackIp(ip),
       }
     })
 
-    const resolvableSessions = sessions.filter(s => s.isResolvable)
-    const activeSessions = resolvableSessions.filter(s => s.active).sort(
+    const activeSessions = sessions.filter(s => s.active).sort(
       (a, b) => new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime()
     )
     const onlineLoggedIn = activeSessions.filter(s => s.isLoggedIn)
@@ -193,7 +193,7 @@ export async function GET() {
         totalOrders,
         totalUsers,
         totalProducts,
-        totalSessions: resolvableSessions.length,
+        totalSessions: sessions.length,
         activeNow: activeSessions.length,
         onlineLoggedIn: onlineLoggedIn.length,
         onlineGuests: onlineGuests.length,

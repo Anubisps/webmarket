@@ -17,7 +17,8 @@ import {
   Shield,
   CreditCard,
   Bell,
-  LogOut
+  LogOut,
+  ScrollText,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { UnreadBadge } from '@/components/ui/UnreadBadge'
@@ -37,6 +38,7 @@ export function AdminSidebar() {
     { href: '/accessadmin/categories', label: 'Categories', icon: Tag },
     { href: '/accessadmin/settings/discounts', label: 'Discounts', icon: Tag },
     { href: '/accessadmin/analytics', label: 'Analytics', icon: BarChart3 },
+    { href: '/accessadmin/audit-log', label: 'Audit Log', icon: ScrollText },
     { href: '/accessadmin/livechat', label: 'Live Chat', icon: MessageCircle },
     { href: '/accessadmin/settings', label: 'Settings', icon: Settings },
     { href: '/accessadmin/settings/payments', label: 'Payments', icon: CreditCard },

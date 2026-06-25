@@ -1,10 +1,10 @@
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { BarChart3 } from 'lucide-react'
-import { AnalyticsDashboard } from './AnalyticsDashboard'
+import { ScrollText } from 'lucide-react'
+import { AuditLogViewer } from './AuditLogViewer'
 
-export default async function AnalyticsPage() {
+export default async function AuditLogPage() {
   const session = await getServerSession()
   if (!session?.user?.email) redirect('/login')
 
@@ -17,23 +17,20 @@ export default async function AnalyticsPage() {
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       <div className="mb-8">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-md">
-          <BarChart3 className="h-4 w-4 text-violet-400" />
-          <span className="text-xs font-medium text-gray-300">Analytics</span>
+          <ScrollText className="h-4 w-4 text-amber-400" />
+          <span className="text-xs font-medium text-gray-300">Security</span>
         </div>
         <h1 className="text-3xl font-extrabold md:text-4xl">
-          <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">
-            Intelligence Dashboard
+          <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+            Audit Log
           </span>
         </h1>
         <p className="mt-2 text-lg text-gray-400">
-          Live visitors, logged-in users, traffic charts, and business metrics — all in one place.
-        </p>
-        <p className="mt-2 text-sm text-amber-400/80">
-          Note: Admin/manager browsing is not tracked. Open the site in a private window as a guest or regular user to test live analytics.
+          Track payments, refunds, order changes, security events, and admin actions.
         </p>
       </div>
 
-      <AnalyticsDashboard />
+      <AuditLogViewer />
     </div>
   )
 }

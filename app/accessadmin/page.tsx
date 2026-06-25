@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Users, Package, ShoppingCart, DollarSign, TrendingUp, Clock, Zap, Sparkles,
   HelpCircle, Ticket, Mail, Gift, Tag, BarChart3, MessageCircle, Settings,
-  CreditCard, Shield, Bell, Plus, FolderTree,
+  CreditCard, Shield, Bell, Plus, FolderTree, ScrollText,
 } from 'lucide-react'
 
 export default async function AdminDashboard() {
@@ -67,6 +67,7 @@ export default async function AdminDashboard() {
     { href: '/accessadmin/affiliates', label: 'Affiliates', desc: 'Referrals & payouts', icon: Gift, color: 'text-amber-400', bg: 'from-amber-500/10 to-orange-500/10' },
     { href: '/accessadmin/faq', label: 'FAQ', desc: 'Help articles', icon: HelpCircle, color: 'text-lime-400', bg: 'from-lime-500/10 to-green-500/10' },
     { href: '/accessadmin/analytics', label: 'Analytics', desc: 'Traffic & sales', icon: BarChart3, color: 'text-indigo-400', bg: 'from-indigo-500/10 to-violet-500/10' },
+    { href: '/accessadmin/audit-log', label: 'Audit Log', desc: 'Admin action history', icon: ScrollText, color: 'text-amber-400', bg: 'from-amber-500/10 to-orange-500/10' },
     { href: '/accessadmin/settings/discounts', label: 'Discounts', desc: 'Coupon codes', icon: Tag, color: 'text-orange-400', bg: 'from-orange-500/10 to-red-500/10' },
     { href: '/accessadmin/settings/payments', label: 'Payments', desc: 'Gateways & methods', icon: CreditCard, color: 'text-teal-400', bg: 'from-teal-500/10 to-emerald-500/10' },
     { href: '/accessadmin/settings/security', label: 'Security', desc: 'Sessions & access', icon: Shield, color: 'text-rose-400', bg: 'from-rose-500/10 to-red-500/10' },

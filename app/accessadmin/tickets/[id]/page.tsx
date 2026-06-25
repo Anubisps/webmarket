@@ -19,6 +19,7 @@ export default function ManageTicketPage() {
   const [staffList, setStaffList] = useState<any[]>([])
   const [assigning, setAssigning] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [cannedReplies, setCannedReplies] = useState<{ id: string; title: string; body: string }[]>([])
 
   useEffect(() => {
     fetch(`/api/admin/tickets/${id}`)
@@ -39,6 +40,11 @@ export default function ManageTicketPage() {
       .then(res => res.json())
       .then(data => setStaffList(data))
       .catch(err => console.error('Failed to load staff:', err))
+
+    fetch('/api/admin/canned-replies')
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setCannedReplies(Array.isArray(data) ? data : []))
+      .catch(() => {})
   }, [id])
 
   useMarkNotificationsRead(`/accessadmin/tickets/${id}`)
@@ -249,10 +255,10 @@ export default function ManageTicketPage() {
             </div>
             {ticket.orderId && (
               <div className="mt-4 bg-blue-500/10 rounded-xl p-3 border border-blue-500/20">
-                <p className="text-sm text-blue-400 flex items-center gap-2">
+                <Link href={`/accessadmin/orders/${ticket.orderId}`} className="text-sm text-blue-400 flex items-center gap-2 hover:underline">
                   <Package className="w-4 h-4" />
-                  Related Order: #{ticket.orderId.slice(0,8)}
-                </p>
+                  View related order #{ticket.orderId.slice(0, 8)}
+                </Link>
               </div>
             )}
           </div>
@@ -277,6 +283,24 @@ export default function ManageTicketPage() {
               </div>
             )}
             <form onSubmit={submitReply} className="mt-4">
+              {cannedReplies.length > 0 && (
+                <div className="mb-3">
+                  <label className="mb-1 block text-xs text-gray-400">Canned reply</label>
+                  <select
+                    className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                    defaultValue=""
+                    onChange={e => {
+                      const reply = cannedReplies.find(r => r.id === e.target.value)
+                      if (reply) setReplyText(reply.body)
+                    }}
+                  >
+                    <option value="">Insert canned reply…</option>
+                    {cannedReplies.map(r => (
+                      <option key={r.id} value={r.id}>{r.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <textarea
                 required
                 rows={3}

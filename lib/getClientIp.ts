@@ -50,9 +50,35 @@ export function getClientIp(request: Request): string | null {
   return null
 }
 
-export function formatIpForDisplay(ip: string | null | undefined): string {
+/** Best-effort IP for analytics — always returns an IP string; never skips recording due to proxy setup. */
+export function resolveAnalyticsIp(request: Request): { ip: string; isPublic: boolean } {
+  const publicIp = getClientIp(request)
+  if (publicIp) return { ip: publicIp, isPublic: true }
+
+  const candidates = [
+    request.headers.get('cf-connecting-ip'),
+    request.headers.get('true-client-ip'),
+    request.headers.get('x-real-ip'),
+    request.headers.get('x-forwarded-for')?.split(',')[0],
+    request.headers.get('x-client-ip'),
+  ]
+
+  for (const raw of candidates) {
+    if (!raw?.trim()) continue
+    const ip = normalizeIp(raw.split(',')[0].trim())
+    if (ip && ip !== 'unknown') {
+      return { ip, isPublic: !isPrivateOrLoopbackIp(ip) }
+    }
+  }
+
+  return { ip: 'unknown', isPublic: false }
+}
+
+export function formatIpForDisplay(ip: string | null | undefined, isPublic?: boolean): string {
   if (!ip || ip === 'unknown' || ip === 'client') return 'Unknown'
   const n = normalizeIp(ip)
-  if (isPrivateOrLoopbackIp(n)) return 'Unresolved (configure proxy headers)'
+  if (isPublic === false || isPrivateOrLoopbackIp(n)) {
+    return `${n} (proxy/local — check nginx X-Real-IP)`
+  }
   return n
 }

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { getToken } from 'next-auth/jwt'
 import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
-import { getClientIp } from '@/lib/getClientIp'
+import { resolveAnalyticsIp } from '@/lib/getClientIp'
 import { lookupGeo } from '@/lib/geoip'
 
 export async function POST(req: Request) {
@@ -49,13 +49,9 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { path, method, referer, query, sessionId } = body
 
-    const ip = getClientIp(req)
-    if (!ip) {
-      return NextResponse.json({ success: true, skipped: 'no_public_ip' })
-    }
-
+    const { ip, isPublic } = resolveAnalyticsIp(req)
     const userAgent = body.userAgent || req.headers.get('user-agent') || ''
-    const geo = await lookupGeo(ip)
+    const geo = isPublic ? await lookupGeo(ip) : {}
 
     await prisma.analyticsEvent.create({
       data: {
@@ -70,7 +66,10 @@ export async function POST(req: Request) {
         userId,
         username,
         isLoggedIn,
-        extra: geo.country ? geo : undefined,
+        extra: {
+          ...(geo.country ? geo : {}),
+          ipPublic: isPublic,
+        },
       },
     })
 
